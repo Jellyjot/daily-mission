@@ -398,10 +398,10 @@ const BACKLOG_DEFAULT=[
   {id:"b32",name:"Chase access to API AI tokens",category:"Delegate / Batch",strategic:2,blocking:1,delegatable:true}
 ];
 
-const DRIVE_FILENAME = "daily-mission-state.json";
-let driveFileId = null;
+const JSONBIN_ID = "6a28737cf5f4af5e29d42f06";
+const JSONBIN_KEY = "$2a$10$2yQ5ZdsmUIAiAGmKyxE/7OmwxwSvf1GIgF7JK6qCQwpKLc2vuFJNS";
+const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_ID;
 let saveDebounceTimer = null;
-let pendingSave = false;
 
 function defaultState(){
   const meta=JSON.parse(localStorage.getItem(todayKey("meta"))||'{"score":0,"streak":0,"xp":0}');
@@ -426,7 +426,6 @@ function defaultState(){
 }
 
 function loadState(){
-  // Start with local cache for instant render, then sync from Drive
   return defaultState();
 }
 
@@ -446,75 +445,49 @@ function setSyncStatus(msg, colour){
   if(mob){mob.textContent=msg;mob.style.color=c;}
 }
 
-async function driveRequest(method, url, body, isJson){
-  const headers={"Content-Type": isJson?"application/json":"text/plain"};
-  const opts={method, headers};
-  if(body!==undefined) opts.body = isJson ? JSON.stringify(body) : body;
-  const r = await fetch(url, opts);
-  if(!r.ok) throw new Error("Drive "+method+" "+r.status);
-  const ct = r.headers.get("content-type")||"";
-  return ct.includes("application/json") ? r.json() : r.text();
-}
-
-async function findDriveFile(){
-  const q=encodeURIComponent("name='"+DRIVE_FILENAME+"' and trashed=false");
-  const data = await driveRequest("GET","https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name)");
-  return data.files && data.files.length ? data.files[0].id : null;
-}
-
-async function readDriveFile(fileId){
-  const text = await driveRequest("GET","https://www.googleapis.com/drive/v3/files/"+fileId+"?alt=media");
-  return typeof text==="string" ? JSON.parse(text) : text;
-}
-
-async function writeDriveFile(fileId, data){
-  const body = JSON.stringify(data);
-  if(fileId){
-    await driveRequest("PATCH","https://www.googleapis.com/upload/drive/v3/files/"+fileId+"?uploadType=media",body,false);
-  } else {
-    // Create file
-    const meta = await driveRequest("POST","https://www.googleapis.com/drive/v3/files",{name:DRIVE_FILENAME,mimeType:"application/json"},true);
-    driveFileId = meta.id;
-    await driveRequest("PATCH","https://www.googleapis.com/upload/drive/v3/files/"+driveFileId+"?uploadType=media",body,false);
-  }
-}
-
-async function syncFromDrive(){
+async function syncFromCloud(){
   setSyncStatus("⟳ Syncing…");
   try {
-    driveFileId = await findDriveFile();
-    if(driveFileId){
-      const remote = await readDriveFile(driveFileId);
-      if(remote && remote.tasks){
-        state.tasks = remote.tasks;
-        state.meta = remote.meta || state.meta;
-        state.backlog = remote.backlog || state.backlog;
-        state.manualOrder = remote.manualOrder || null;
-        saveLocalCache(state);
-        render();
-      }
+    const r = await fetch(JSONBIN_URL+"/latest", {
+      headers:{"X-Master-Key": JSONBIN_KEY}
+    });
+    if(!r.ok) throw new Error("Fetch failed "+r.status);
+    const data = await r.json();
+    const remote = data.record;
+    if(remote && remote.tasks && remote.tasks.length){
+      state.tasks = remote.tasks;
+      state.meta = remote.meta || state.meta;
+      state.backlog = remote.backlog && remote.backlog.length ? remote.backlog : state.backlog;
+      state.manualOrder = remote.manualOrder || null;
+      saveLocalCache(state);
+      render();
     }
-    setSyncStatus("✓ Synced","var(--green)");
+    setSyncStatus("✓ Synced", "var(--green)");
+    setTimeout(()=>setSyncStatus("",""), 2500);
   } catch(e){
-    console.warn("Drive sync failed:",e);
-    setSyncStatus("⚠ Offline — changes saved locally","var(--amber)");
+    console.warn("Sync failed:", e);
+    setSyncStatus("⚠ Offline — saved locally", "var(--amber)");
   }
 }
 
 function saveState(){
   saveLocalCache(state);
-  // Debounce Drive writes to avoid hammering on rapid changes
   clearTimeout(saveDebounceTimer);
-  setSyncStatus("⟳ Saving…","var(--text2)");
+  setSyncStatus("⟳ Saving…", "var(--text2)");
   saveDebounceTimer = setTimeout(async()=>{
     try {
-      const payload={tasks:state.tasks,meta:state.meta,backlog:state.backlog,manualOrder:state.manualOrder};
-      await writeDriveFile(driveFileId, payload);
-      setSyncStatus("✓ Saved","var(--green)");
-      setTimeout(()=>setSyncStatus("",""),2000);
+      const payload = {tasks:state.tasks, meta:state.meta, backlog:state.backlog, manualOrder:state.manualOrder};
+      const r = await fetch(JSONBIN_URL, {
+        method:"PUT",
+        headers:{"Content-Type":"application/json","X-Master-Key": JSONBIN_KEY},
+        body: JSON.stringify(payload)
+      });
+      if(!r.ok) throw new Error("Save failed "+r.status);
+      setSyncStatus("✓ Saved", "var(--green)");
+      setTimeout(()=>setSyncStatus("",""), 2500);
     } catch(e){
-      console.warn("Drive save failed:",e);
-      setSyncStatus("⚠ Offline — changes saved locally","var(--amber)");
+      console.warn("Save failed:", e);
+      setSyncStatus("⚠ Offline — saved locally", "var(--amber)");
     }
   }, 800);
 }
@@ -1054,7 +1027,7 @@ function initTouchDrag(listEl, listName){
 }
 
 render();
-syncFromDrive();
+syncFromCloud();
 </script>
 <nav class="mob-nav">
   <button class="mob-nav-btn active" id="mob-nav-today" onclick="switchView('today')">
