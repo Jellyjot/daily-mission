@@ -99,6 +99,7 @@
   .task-actions{display:flex;gap:6px;flex-shrink:0;align-items:flex-start;margin-top:1px;flex-wrap:wrap;justify-content:flex-end;max-width:190px;}
   .action-btn{background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:4px 10px;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap;}
   .action-btn:hover{border-color:var(--border2);color:var(--text2);}
+  .action-btn.edit-btn:hover{border-color:var(--purple);color:var(--purple);}
   .action-btn.followup-btn:hover{border-color:var(--amber);color:var(--amber);}
   .action-btn.delete-btn:hover{border-color:var(--red);color:var(--red);}
   .action-btn.undo-btn:hover{border-color:var(--blue);color:var(--blue);}
@@ -154,6 +155,9 @@
   .due-later{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
   .manual-order-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);}
   .manual-order-badge button{background:transparent;border:none;color:var(--accent);cursor:pointer;font-size:10px;font-family:'Inter',sans-serif;padding:0;text-decoration:underline;}
+  .task-card.touch-dragging{opacity:.35;border-style:dashed;}
+  .task-card.touch-drag-over{border-color:var(--accent);background:#182030;}
+  .drag-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:.85;transform:rotate(2deg) scale(1.02);box-shadow:0 8px 32px rgba(0,0,0,.5);border-radius:10px;background:#1c2432;border:1px solid var(--accent);padding:14px 16px;font-size:14px;color:#d8e8f8;max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .today-drop-zone{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;font-size:12px;color:var(--text3);margin-bottom:6px;transition:all .15s;display:none;}
   .today-drop-zone.visible{display:block;}
   .today-drop-zone.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
@@ -191,7 +195,8 @@
     .check-btn{width:28px;height:28px;flex-shrink:0;margin-top:0;}
     .task-actions{max-width:none;width:100%;margin-top:10px;flex-direction:row;gap:6px;justify-content:flex-start;}
     .action-btn{flex:1;text-align:center;padding:8px 4px;font-size:12px;border-radius:8px;}
-    .drag-handle{display:none;}
+    .drag-handle{opacity:0.5;display:flex;}
+    .task-card:hover .drag-handle{opacity:1;}
     .section-head{font-size:10px;margin-top:20px;}
     .celebrate-bar{margin-bottom:12px;}
     .next-up-banner{font-size:13px;margin-bottom:12px;}
@@ -540,8 +545,8 @@ function renderList(elId,tasks,isDraggable){
     const rankBadge=showRank?'<span class="rank-badge'+(isTop?" top":"")+'">#'+(idx+1)+'</span>':"";
     const handle=isDraggable?'<div class="drag-handle" title="Drag to reorder"><span></span><span></span><span></span></div>':"";
     let actions="";
-    if(t.status==="todo"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn followup-btn" onclick="followupTask('+t.id+')">Follow up</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
-    else if(t.status==="followup"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn undo-btn" onclick="undoTask('+t.id+')">Undo</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
+    if(t.status==="todo"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn followup-btn" onclick="followupTask('+t.id+')">Follow up</button><button class="action-btn edit-btn" onclick="openEditModal('+t.id+',\'today\')">Edit</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
+    else if(t.status==="followup"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn undo-btn" onclick="undoTask('+t.id+')">Undo</button><button class="action-btn edit-btn" onclick="openEditModal('+t.id+',\'today\')">Edit</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
     else{actions='<button class="action-btn undo-btn" onclick="undoTask('+t.id+')">Undo</button>';}
     const commentSection=t.status==="followup"?(t.comment?'<div class="comment-display" onclick="editComment('+t.id+')" title="Click to edit">&#8203;'+escHtml(t.comment)+'</div>':'<div class="comment-row"><textarea class="comment-input" id="comment-'+t.id+'" placeholder="What are you waiting on?" rows="1"></textarea><button class="comment-save-btn" onclick="saveComment('+t.id+')">Save</button></div>'):"";
     card.innerHTML=handle+'<button class="check-btn" onclick="'+(t.status==='todo'?'completeTask':'undoTask')+'('+t.id+')" aria-label="toggle"><span class="check-icon">'+checkIcon+'</span></button><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+fuTag+delegateTag+dueChip+scoreBadge+rankBadge+ptsLabel+'</div>'+commentSection+'</div><div class="task-actions">'+actions+'</div>';
@@ -612,6 +617,7 @@ function initTodayDrag(){
       if(dragSrcList==="backlog"){addBacklogToToday(dragSrcId,null);switchView("today");}
     });
   });
+  initTouchDrag(list, "today");
 }
 
 function reorderToday(srcId,targetId){
@@ -680,6 +686,7 @@ function initBacklogDrag(){
       saveState();renderBacklog();
     });
   });
+  initTouchDrag(list, "backlog");
 }
 
 function renderBacklog(){
@@ -726,7 +733,7 @@ function renderBacklog(){
       const scoreBadge='<span class="score-badge '+scoreLabel(score)+'" data-id="'+t.id+'" onmouseenter="showTip(event,\''+t.id+'\',\'backlog\')" onmouseleave="hideTip()">&#9650; '+score+'</span>';
       const promoteBtn=t.inToday?'<button class="action-btn" style="cursor:default;opacity:.4;" disabled>Added</button>':'<button class="action-btn promote-btn" onclick="promoteToToday(\''+t.id+'\')">Add to today</button>';
       const handle='<div class="drag-handle" title="Drag to reorder, or drop onto Today tab"><span></span><span></span><span></span></div>';
-      card.innerHTML=handle+'<div class="check-btn" style="cursor:default;opacity:.2;"></div><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+delegateTag+inTodayBadge+dueChip+scoreBadge+'</div></div><div class="task-actions">'+promoteBtn+'<button class="action-btn delete-btn" onclick="deleteBacklog(\''+t.id+'\')">Remove</button></div>';
+      card.innerHTML=handle+'<div class="check-btn" style="cursor:default;opacity:.2;"></div><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+delegateTag+inTodayBadge+dueChip+scoreBadge+'</div></div><div class="task-actions">'+promoteBtn+'<button class="action-btn edit-btn" onclick="openEditModal(\''+t.id+'\',\'backlog\')">Edit</button><button class="action-btn delete-btn" onclick="deleteBacklog(\''+t.id+'\')">Remove</button></div>';
       el.appendChild(card);
     });
   });
@@ -835,7 +842,120 @@ function saveModal(){
 }
 function addFromBacklog(){document.querySelectorAll("#modal input[type=checkbox]:checked").forEach(cb=>promoteToToday(cb.dataset.id));closeModal();render();}
 function closeModal(){document.getElementById("modal").classList.remove("open");}
-document.getElementById("modal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeModal();});
+function openEditModal(id, source){
+  modalMode = "edit-"+source;
+  const t = source==="today"
+    ? state.tasks.find(t=>String(t.id)===String(id))
+    : state.backlog.find(t=>String(t.id)===String(id));
+  if(!t) return;
+  const modal = document.getElementById("modal");
+  const title = document.getElementById("modal-title");
+  const body = document.getElementById("modal-body");
+  title.textContent = "Edit task";
+  const CATS = ["Leadership","Global Dashboard","Finance & Reporting","Data & Infrastructure","Projects","People & Training","Delegate / Batch","Other"];
+  const catField = source==="backlog"
+    ? '<div class="field"><label>Category</label><select id="m-cat">'+CATS.map(c=>'<option'+(t.category===c?' selected':'')+'>'+escHtml(c)+'</option>').join('')+'</select></div>'
+    : "";
+  const dueDateField = '<div class="field"><label>Due date <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label><input type="date" id="m-due" value="'+(t.dueDate||"")+'" onchange="updateScorePreview()"/></div>';
+  body.innerHTML = '<div class="field"><label>Task name</label><input type="text" id="m-name" value="'+escHtml(t.name)+'"/></div>'+catField+dueDateField+makeSliders(t.strategic||3,t.blocking||2,t.delegatable||false)+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveEditModal(\''+id+'\',\''+source+'\')">Save</button></div>';
+  setTimeout(updateScorePreview, 10);
+  modal.classList.add("open");
+}
+
+function saveEditModal(id, source){
+  const name = document.getElementById("m-name").value.trim();
+  if(!name) return;
+  const strategic = parseInt(document.getElementById("m-strategic").value);
+  const blocking = parseInt(document.getElementById("m-blocking").value);
+  const delegatable = document.getElementById("m-delegatable").checked;
+  const dueEl = document.getElementById("m-due");
+  const dueDate = dueEl && dueEl.value ? dueEl.value : null;
+  if(source==="today"){
+    const t = state.tasks.find(t=>String(t.id)===String(id));
+    if(!t) return;
+    t.name=name; t.strategic=strategic; t.blocking=blocking; t.delegatable=delegatable; t.dueDate=dueDate;
+  } else {
+    const t = state.backlog.find(t=>String(t.id)===String(id));
+    if(!t) return;
+    t.name=name; t.strategic=strategic; t.blocking=blocking; t.delegatable=delegatable; t.dueDate=dueDate;
+    const catEl = document.getElementById("m-cat");
+    if(catEl) t.category = catEl.value;
+  }
+  saveState(); closeModal(); render();
+}
+
+// ── Touch drag-and-drop ──────────────────────────────────────────────────────
+let touchDragId = null;
+let touchDragList = null;
+let touchGhost = null;
+
+function initTouchDrag(listEl, listName){
+  listEl.querySelectorAll(".drag-handle").forEach(handle=>{
+    handle.addEventListener("touchstart", e=>{
+      const card = handle.closest(".task-card");
+      if(!card) return;
+      touchDragId = card.dataset.id;
+      touchDragList = listName;
+      card.classList.add("touch-dragging");
+
+      // Create ghost
+      touchGhost = document.createElement("div");
+      touchGhost.className = "drag-ghost";
+      const nameEl = card.querySelector(".task-name");
+      touchGhost.textContent = nameEl ? nameEl.textContent : "Task";
+      document.body.appendChild(touchGhost);
+
+      const touch = e.touches[0];
+      touchGhost.style.left = (touch.clientX - 20)+"px";
+      touchGhost.style.top = (touch.clientY - 20)+"px";
+      e.preventDefault();
+    }, {passive:false});
+  });
+
+  document.addEventListener("touchmove", e=>{
+    if(!touchDragId) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    if(touchGhost){
+      touchGhost.style.left = (touch.clientX - 20)+"px";
+      touchGhost.style.top = (touch.clientY - 20)+"px";
+    }
+    // Highlight target card
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetCard = el ? el.closest(".task-card") : null;
+    document.querySelectorAll(".touch-drag-over").forEach(c=>c.classList.remove("touch-drag-over"));
+    if(targetCard && targetCard.dataset.id && String(targetCard.dataset.id)!==String(touchDragId)){
+      targetCard.classList.add("touch-drag-over");
+    }
+  }, {passive:false});
+
+  document.addEventListener("touchend", e=>{
+    if(!touchDragId) return;
+    document.querySelectorAll(".touch-dragging").forEach(c=>c.classList.remove("touch-dragging"));
+    document.querySelectorAll(".touch-drag-over").forEach(c=>c.classList.remove("touch-drag-over"));
+    if(touchGhost){ touchGhost.remove(); touchGhost=null; }
+
+    const touch = e.changedTouches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetCard = el ? el.closest(".task-card") : null;
+    const targetId = targetCard ? targetCard.dataset.id : null;
+
+    if(targetId && String(targetId)!==String(touchDragId)){
+      if(touchDragList==="today" && listName==="today"){
+        reorderToday(String(touchDragId), String(targetId));
+      } else if(touchDragList==="backlog" && listName==="backlog"){
+        const fromIdx = state.backlog.findIndex(t=>String(t.id)===String(touchDragId));
+        const toIdx   = state.backlog.findIndex(t=>String(t.id)===String(targetId));
+        if(fromIdx!==-1 && toIdx!==-1){
+          const[moved]=state.backlog.splice(fromIdx,1);
+          state.backlog.splice(toIdx,0,moved);
+          saveState(); renderBacklog();
+        }
+      }
+    }
+    touchDragId=null; touchDragList=null;
+  });
+}
 
 render();
 </script>
