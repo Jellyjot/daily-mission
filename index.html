@@ -103,7 +103,7 @@
   .action-btn.followup-btn:hover{border-color:var(--amber);color:var(--amber);}
   .action-btn.delete-btn:hover{border-color:var(--red);color:var(--red);}
   .action-btn.undo-btn:hover{border-color:var(--blue);color:var(--blue);}
-  .action-btn.promote-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .action-btn.backlog-btn:hover{border-color:var(--purple);color:var(--purple);}
   .comment-row{margin-top:8px;display:flex;gap:8px;align-items:flex-start;}
   .comment-input{flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:6px 10px;font-size:12px;font-family:'Inter',sans-serif;outline:none;resize:none;min-height:32px;line-height:1.4;}
   .comment-input:focus{border-color:var(--amber);}
@@ -112,7 +112,7 @@
   .comment-save-btn:hover{border-color:var(--amber);color:var(--amber);}
   .comment-display{margin-top:7px;font-size:12px;color:var(--amber);background:var(--amber-dim);border:1px solid #0f2040;border-radius:6px;padding:6px 10px;line-height:1.5;cursor:pointer;}
   .comment-display:hover{border-color:var(--amber);}
-  .backlog-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+  .backlog-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;flex-direction:column;}
   .cat-pill{background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:20px;padding:4px 14px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
   .cat-pill:hover{border-color:var(--border2);color:var(--text2);}
   .cat-pill.active{border-color:var(--purple);color:var(--purple);background:var(--purple-dim);}
@@ -161,6 +161,54 @@
   .today-drop-zone{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;font-size:12px;color:var(--text3);margin-bottom:6px;transition:all .15s;display:none;}
   .today-drop-zone.visible{display:block;}
   .today-drop-zone.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+  .search-wrap{position:relative;margin-bottom:16px;}
+  .search-input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:8px 36px 8px 12px;font-size:13px;font-family:'Inter',sans-serif;outline:none;}
+  .search-input:focus{border-color:var(--accent);}
+  .search-input::placeholder{color:var(--text3);}
+  .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 4px;display:none;}
+  .search-clear.visible{display:block;}
+  .search-clear:hover{color:var(--text2);}
+  /* Carry-over banner */
+  .carryover-banner{background:#1a1428;border:1px solid var(--purple);border-radius:10px;padding:14px 16px;margin-bottom:18px;display:none;}
+  .carryover-banner.show{display:block;}
+  .carryover-title{font-size:13px;font-weight:500;color:var(--purple);margin-bottom:8px;}
+  .carryover-list{margin-bottom:12px;}
+  .carryover-item{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);gap:8px;}
+  .carryover-item:last-child{border-bottom:none;}
+  .carryover-actions{display:flex;gap:6px;flex-shrink:0;}
+  .co-btn{background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:6px;padding:3px 10px;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .co-btn.keep:hover{border-color:var(--accent);color:var(--accent);}
+  .co-btn.park:hover{border-color:var(--purple);color:var(--purple);}
+  .co-btn.dismiss-all{border-color:var(--border2);color:var(--text3);}
+  .co-btn.dismiss-all:hover{border-color:var(--red);color:var(--red);}
+  /* Delegate filter */
+  .today-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+  .today-filter-pill{background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:20px;padding:4px 12px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
+  .today-filter-pill:hover{border-color:var(--border2);color:var(--text2);}
+  .today-filter-pill.active{border-color:var(--blue);color:var(--blue);background:var(--blue-dim);}
+  /* Due date inline add */
+  .add-due-link{font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:2px 0;}
+  .add-due-link:hover{color:var(--accent);}
+  .inline-due-wrap{display:flex;align-items:center;gap:6px;margin-top:4px;}
+  .inline-due-input{background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;font-family:'Inter',sans-serif;outline:none;color-scheme:dark;}
+  .inline-due-input:focus{border-color:var(--accent);}
+  .inline-due-save{background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:6px;padding:3px 8px;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
+  .inline-due-save:hover{border-color:var(--accent);color:var(--accent);}
+  .inline-due-cancel{background:transparent;border:none;color:var(--text3);font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;padding:3px 4px;}
+  .inline-due-cancel:hover{color:var(--red);}
+  /* Weekly summary */
+  .week-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+  .week-stat{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
+  .week-stat .wv{font-size:28px;font-weight:500;font-family:'DM Mono',monospace;color:var(--text);}
+  .week-stat .wl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;}
+  .week-day-section{margin-bottom:20px;}
+  .week-day-head{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .week-day-head span{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 7px;}
+  .week-task-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);}
+  .week-task-row:last-child{border-bottom:none;}
+  .week-tick{width:16px;height:16px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#0e1217;font-weight:700;}
+  .week-pts{margin-left:auto;font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);}
+  .week-empty{color:var(--text3);font-size:13px;padding:20px;text-align:center;border:1px dashed var(--border);border-radius:8px;}
 
   .mob-header{display:none;}
   .mob-stats{display:none;}
@@ -256,6 +304,7 @@
     <div class="nav-tabs">
       <button class="nav-tab active" id="nav-today" onclick="switchView('today')">Today</button>
       <button class="nav-tab" id="nav-backlog" onclick="switchView('backlog')">Backlog</button>
+      <button class="nav-tab" id="nav-week" onclick="switchView('week')">Week</button>
     </div>
   </div>
   <div class="sidebar-footer">
@@ -273,7 +322,13 @@
       </div>
     </div>
     <div class="celebrate-bar" id="celebrate"></div>
+    <div class="carryover-banner" id="carryover-banner"></div>
     <div id="next-up-banner"></div>
+    <div class="search-wrap">
+      <input class="search-input" id="today-search" type="text" placeholder="Search today's tasks…" oninput="onTodaySearch(this)">
+      <button class="search-clear" id="today-search-clear" onclick="clearTodaySearch()">✕</button>
+    </div>
+    <div class="today-filters" id="today-filters"></div>
     <div class="progress-bar-wrap">
       <div class="progress-label"><span id="prog-label">0 of 0 tasks complete</span><span id="prog-pct">0%</span></div>
       <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
@@ -292,7 +347,11 @@
       <button class="add-btn" onclick="openModal('backlog-new')">+ Add to backlog</button>
     </div>
     <div class="backlog-controls">
-      <div id="cat-filters" style="display:flex;gap:8px;flex-wrap:wrap;flex:1;"></div>
+      <div class="search-wrap" style="margin-bottom:0;flex:1 1 100%;">
+        <input class="search-input" id="backlog-search" type="text" placeholder="Search backlog…" oninput="onBacklogSearch(this)">
+        <button class="search-clear" id="backlog-search-clear" onclick="clearBacklogSearch()">✕</button>
+      </div>
+      <div id="cat-filters" style="display:flex;gap:8px;flex-wrap:wrap;flex:1;align-self:flex-start;"></div>
       <select class="sort-select" id="sort-select" onchange="renderBacklog()">
         <option value="score">Sort by priority score</option>
         <option value="due">Sort by due date</option>
@@ -301,6 +360,12 @@
       </select>
     </div>
     <div id="backlog-list"></div>
+  </div>
+  <div class="view" id="view-week">
+    <div class="main-header">
+      <div class="main-title">This week</div>
+    </div>
+    <div id="week-content"></div>
   </div>
 </main>
 </div>
@@ -408,6 +473,7 @@ function defaultState(){
   const tasks=JSON.parse(localStorage.getItem(todayKey("tasks"))||"null");
   const backlog=JSON.parse(localStorage.getItem("dm_backlog")||"null");
   const manualOrder=JSON.parse(localStorage.getItem(todayKey("manual_order"))||"null");
+  const weekLog=JSON.parse(localStorage.getItem("dm_weeklog")||"null");
   return{
     tasks:tasks||[
       {id:1,name:"AR waterfall for May",strategic:4,blocking:2,delegatable:false,status:"todo"},
@@ -421,7 +487,8 @@ function defaultState(){
     ],
     meta,
     backlog:backlog||BACKLOG_DEFAULT.map(t=>({...t,inToday:false})),
-    manualOrder:manualOrder||null
+    manualOrder:manualOrder||null,
+    weekLog:weekLog||{}
   };
 }
 
@@ -435,6 +502,7 @@ function saveLocalCache(s){
   localStorage.setItem("dm_backlog",JSON.stringify(s.backlog));
   if(s.manualOrder)localStorage.setItem(todayKey("manual_order"),JSON.stringify(s.manualOrder));
   else localStorage.removeItem(todayKey("manual_order"));
+  if(s.weekLog)localStorage.setItem("dm_weeklog",JSON.stringify(s.weekLog));
 }
 
 function setSyncStatus(msg, colour){
@@ -459,6 +527,7 @@ async function syncFromCloud(){
       state.meta = remote.meta || {score:0,streak:0,xp:0};
       state.backlog = Array.isArray(remote.backlog) && remote.backlog.length ? remote.backlog : state.backlog;
       state.manualOrder = remote.manualOrder || null;
+      state.weekLog = remote.weekLog || {};
       // Clear any stale local keys so remote always wins on next load
       Object.keys(localStorage).filter(k=>k.startsWith("dm_")).forEach(k=>localStorage.removeItem(k));
       saveLocalCache(state);
@@ -478,7 +547,7 @@ function saveState(){
   setSyncStatus("⟳ Saving…", "var(--text2)");
   saveDebounceTimer = setTimeout(async()=>{
     try {
-      const payload = {tasks:state.tasks, meta:state.meta, backlog:state.backlog, manualOrder:state.manualOrder};
+      const payload = {tasks:state.tasks, meta:state.meta, backlog:state.backlog, manualOrder:state.manualOrder, weekLog:state.weekLog};
       const r = await fetch(JSONBIN_URL, {
         method:"PUT",
         headers:{
@@ -504,6 +573,9 @@ let activeCat="All";
 let modalMode="";
 let dragSrcId=null;
 let dragSrcList=null;
+let todaySearchQuery="";
+let backlogSearchQuery="";
+let todayDelegateFilter=false;
 
 function getMult(s){return s>=5?3:s>=3?2:1;}
 function getLevel(xp){let l=LEVELS[0];for(let i=LEVELS.length-1;i>=0;i--){if(xp>=LEVELS[i].xp){l=LEVELS[i];break;}}return l;}
@@ -552,9 +624,10 @@ function render(){
   const mobXpLevel=document.getElementById("mob-xp-level");if(mobXpLevel)mobXpLevel.textContent=lv.name;
   const mobXpFill=document.getElementById("mob-xp-fill");if(mobXpFill)mobXpFill.style.width=pct+"%";
   document.querySelectorAll(".mob-nav-btn").forEach(b=>b.classList.remove("active"));
-  const anb=document.getElementById("mob-nav-"+(currentView==="today"?"today":"backlog"));if(anb)anb.classList.add("active");
+  const anb=document.getElementById("mob-nav-"+(currentView==="today"?"today":currentView==="week"?"week":"backlog"));if(anb)anb.classList.add("active");
   if(currentView==="today")renderToday();
-  else renderBacklog();
+  else if(currentView==="backlog")renderBacklog();
+  else if(currentView==="week")renderWeek();
 }
 
 function getOrderedTodo(){
@@ -572,14 +645,28 @@ function resetManualOrder(){state.manualOrder=null;saveState();render();}
 
 function renderToday(){
   const tasks=state.tasks;
+  // ── Carry-over check ────────────────────────────────────────────────
+  checkCarryover();
+  // ── Delegate filter pill ─────────────────────────────────────────────
+  const filterBar=document.getElementById("today-filters");
+  if(filterBar){
+    const hasDelegatables=tasks.some(t=>t.delegatable&&t.status==="todo");
+    if(hasDelegatables){
+      filterBar.innerHTML='<button class="today-filter-pill'+(todayDelegateFilter?" active":"")+'" onclick="toggleDelegateFilter()">🔵 Delegate batch</button>';
+    } else {
+      filterBar.innerHTML="";
+    }
+  }
   const doneCount=tasks.filter(t=>t.status==="done").length;
   const progPct=tasks.length?Math.round((doneCount/tasks.length)*100):0;
   document.getElementById("prog-label").textContent=doneCount+" of "+tasks.length+" tasks complete";
   document.getElementById("prog-pct").textContent=progPct+"%";
   document.getElementById("prog-fill").style.width=progPct+"%";
-  const todo=getOrderedTodo();
-  const followup=tasks.filter(t=>t.status==="followup");
-  const done=tasks.filter(t=>t.status==="done");
+  let todo=getOrderedTodo();
+  let followup=tasks.filter(t=>t.status==="followup");
+  let done=tasks.filter(t=>t.status==="done");
+  if(todayDelegateFilter){todo=todo.filter(t=>t.delegatable);followup=followup.filter(t=>t.delegatable);}
+  const applySearch=arr=>todaySearchQuery?arr.filter(t=>t.name.toLowerCase().includes(todaySearchQuery)):arr;
   document.getElementById("todo-count").textContent=todo.length;
   document.getElementById("followup-count").textContent=followup.length;
   document.getElementById("done-count-today").textContent=done.length;
@@ -588,16 +675,19 @@ function renderToday(){
     indicator.innerHTML=' <span class="manual-order-badge">custom order <button onclick="resetManualOrder()">reset to priority</button></span>';
   }else{indicator.innerHTML="";}
   const banner=document.getElementById("next-up-banner");
-  if(todo.length>0){
-    const top=todo[0];
+  const rawTodo=getOrderedTodo();
+  if(rawTodo.length>0){
+    const top=rawTodo[0];
     banner.innerHTML='<span style="font-size:16px;">&#9654;</span> <span>Next up: <strong>'+escHtml(top.name)+'</strong> &mdash; priority score '+calcScore(top)+'</span>';
     banner.className="next-up-banner";
   }else{banner.innerHTML="";banner.className="";}
-  renderList("todo-list",todo,true);
-  renderList("followup-list",followup,false);
-  renderList("done-list",done,false);
+  renderList("todo-list",applySearch(todo),true);
+  renderList("followup-list",applySearch(followup),false);
+  renderList("done-list",applySearch(done),false);
   initTodayDrag();
 }
+
+function toggleDelegateFilter(){todayDelegateFilter=!todayDelegateFilter;renderToday();}
 
 function renderList(elId,tasks,isDraggable){
   const el=document.getElementById(elId);
@@ -616,15 +706,17 @@ function renderList(elId,tasks,isDraggable){
     const fuTag=t.status==="followup"?'<span class="tag tag-followup">Follow up</span>':"";
     const delegateTag=t.delegatable?'<span class="tag tag-delegate">Delegate</span>':"";
     const dueChip=t.status!=="done"?dueDateChip(t):"";
+    const addDueLink=(t.status==="todo"&&!t.dueDate)?'<span class="add-due-link" onclick="showInlineDue('+t.id+')">+ due date</span>':"";
+    const inlineDueWrap='<div class="inline-due-wrap" id="inline-due-'+t.id+'" style="display:none;"><input class="inline-due-input" type="date" id="inline-due-input-'+t.id+'" color-scheme="dark"><button class="inline-due-save" onclick="saveInlineDue('+t.id+')">Set</button><button class="inline-due-cancel" onclick="cancelInlineDue('+t.id+')">✕</button></div>';
     const scoreBadge=t.status!=="done"?'<span class="score-badge '+scoreLabel(score)+'" data-id="'+t.id+'" onmouseenter="showTip(event,\''+t.id+'\',\'today\')" onmouseleave="hideTip()">&#9650; '+score+'</span>':"";
     const rankBadge=showRank?'<span class="rank-badge'+(isTop?" top":"")+'">#'+(idx+1)+'</span>':"";
     const handle=isDraggable?'<div class="drag-handle" title="Drag to reorder"><span></span><span></span><span></span></div>':"";
     let actions="";
-    if(t.status==="todo"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn followup-btn" onclick="followupTask('+t.id+')">Follow up</button><button class="action-btn edit-btn" onclick="openEditModal('+t.id+',\'today\')">Edit</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
-    else if(t.status==="followup"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn undo-btn" onclick="undoTask('+t.id+')">Undo</button><button class="action-btn edit-btn" onclick="openEditModal('+t.id+',\'today\')">Edit</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
+    if(t.status==="todo"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn followup-btn" onclick="followupTask('+t.id+')">Follow up</button><button class="action-btn edit-btn" onclick="openEditModal('+t.id+',\'today\')">Edit</button><button class="action-btn backlog-btn" onclick="sendToBacklog('+t.id+')">→ Backlog</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
+    else if(t.status==="followup"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn undo-btn" onclick="undoTask('+t.id+')">Undo</button><button class="action-btn edit-btn" onclick="openEditModal('+t.id+',\'today\')">Edit</button><button class="action-btn backlog-btn" onclick="sendToBacklog('+t.id+')">→ Backlog</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
     else{actions='<button class="action-btn undo-btn" onclick="undoTask('+t.id+')">Undo</button>';}
     const commentSection=t.status==="followup"?(t.comment?'<div class="comment-display" onclick="editComment('+t.id+')" title="Click to edit">&#8203;'+escHtml(t.comment)+'</div>':'<div class="comment-row"><textarea class="comment-input" id="comment-'+t.id+'" placeholder="What are you waiting on?" rows="1"></textarea><button class="comment-save-btn" onclick="saveComment('+t.id+')">Save</button></div>'):"";
-    card.innerHTML=handle+'<button class="check-btn" onclick="'+(t.status==='todo'?'completeTask':'undoTask')+'('+t.id+')" aria-label="toggle"><span class="check-icon">'+checkIcon+'</span></button><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+fuTag+delegateTag+dueChip+scoreBadge+rankBadge+ptsLabel+'</div>'+commentSection+'</div><div class="task-actions">'+actions+'</div>';
+    card.innerHTML=handle+'<button class="check-btn" onclick="'+(t.status==='todo'?'completeTask':'undoTask')+'('+t.id+')" aria-label="toggle"><span class="check-icon">'+checkIcon+'</span></button><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+fuTag+delegateTag+dueChip+addDueLink+scoreBadge+rankBadge+ptsLabel+'</div>'+inlineDueWrap+commentSection+'</div><div class="task-actions">'+actions+'</div>';
     el.appendChild(card);
   });
 }
@@ -777,6 +869,10 @@ function renderBacklog(){
   });
   const sort=document.getElementById("sort-select").value;
   let filtered=activeCat==="All"?[...backlog]:backlog.filter(t=>t.category===activeCat);
+  // Hide items already in today
+  filtered=filtered.filter(t=>!t.inToday);
+  // Apply search
+  if(backlogSearchQuery)filtered=filtered.filter(t=>t.name.toLowerCase().includes(backlogSearchQuery));
   filtered=filtered.map(t=>({...t,_score:calcScore(t)}));
   if(sort==="score")filtered.sort((a,b)=>b._score-a._score||(b.strategic||1)-(a.strategic||1));
   else if(sort==="due")filtered.sort((a,b)=>{const da=daysUntilDue(a),db=daysUntilDue(b);if(da===null&&db===null)return 0;if(da===null)return 1;if(db===null)return-1;return da-db;});
@@ -784,7 +880,7 @@ function renderBacklog(){
   else if(sort==="strategic")filtered.sort((a,b)=>(b.strategic||1)-(a.strategic||1));
   const el=document.getElementById("backlog-list");
   el.innerHTML="";
-  if(!filtered.length){el.innerHTML='<div class="empty-state">Nothing here - add some tasks!</div>';return;}
+  if(!filtered.length){el.innerHTML='<div class="empty-state">'+(backlogSearchQuery?"No tasks match your search":"Nothing here - add some tasks!")+'</div>';return;}
   const grouped={};
   if(sort==="score"||sort==="strategic"){filtered.forEach(t=>{if(!grouped[t.category])grouped[t.category]=[];grouped[t.category].push(t);});}
   else{grouped["All"]=filtered;}
@@ -799,16 +895,15 @@ function renderBacklog(){
     }
     items.forEach(t=>{
       const card=document.createElement("div");
-      card.className="task-card"+(t.inToday?" done":"");
+      card.className="task-card";
       card.dataset.id=t.id;
       const score=t._score;
-      const inTodayBadge=t.inToday?'<span class="tag" style="background:var(--accent-dim);color:var(--accent);border:1px solid #0f2a50;">In today</span>':"";
       const delegateTag=t.delegatable?'<span class="tag tag-delegate">Delegate</span>':"";
       const dueChip=dueDateChip(t);
       const scoreBadge='<span class="score-badge '+scoreLabel(score)+'" data-id="'+t.id+'" onmouseenter="showTip(event,\''+t.id+'\',\'backlog\')" onmouseleave="hideTip()">&#9650; '+score+'</span>';
-      const promoteBtn=t.inToday?'<button class="action-btn" style="cursor:default;opacity:.4;" disabled>Added</button>':'<button class="action-btn promote-btn" onclick="promoteToToday(\''+t.id+'\')">Add to today</button>';
+      const promoteBtn='<button class="action-btn promote-btn" onclick="promoteToToday(\''+t.id+'\')">Add to today</button>';
       const handle='<div class="drag-handle" title="Drag to reorder, or drop onto Today tab"><span></span><span></span><span></span></div>';
-      card.innerHTML=handle+'<div class="check-btn" style="cursor:default;opacity:.2;"></div><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+delegateTag+inTodayBadge+dueChip+scoreBadge+'</div></div><div class="task-actions">'+promoteBtn+'<button class="action-btn edit-btn" onclick="openEditModal(\''+t.id+'\',\'backlog\')">Edit</button><button class="action-btn delete-btn" onclick="deleteBacklog(\''+t.id+'\')">Remove</button></div>';
+      card.innerHTML=handle+'<div class="check-btn" style="cursor:default;opacity:.2;"></div><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+delegateTag+dueChip+scoreBadge+'</div></div><div class="task-actions">'+promoteBtn+'<button class="action-btn edit-btn" onclick="openEditModal(\''+t.id+'\',\'backlog\')">Edit</button><button class="action-btn delete-btn" onclick="deleteBacklog(\''+t.id+'\')">Remove</button></div>';
       el.appendChild(card);
     });
   });
@@ -834,6 +929,7 @@ function completeTask(id){
   const mult=getMult(state.meta.streak);const pts=calcScore(t)*mult;
   state.meta.score+=pts;state.meta.xp+=Math.round(calcScore(t)*0.5);
   if(state.manualOrder)state.manualOrder=state.manualOrder.filter(mid=>String(mid)!==String(id));
+  logTaskComplete(t);
   saveState();
   const allDone=state.tasks.every(t=>t.status==="done");
   let msg=allDone?"ALL DONE. You absolutely smashed today.":CELEBRATES[Math.floor(Math.random()*CELEBRATES.length)];
@@ -864,6 +960,31 @@ function promoteToToday(id){
   saveState();celebrate("Added to today. Let's go.");render();
 }
 function deleteBacklog(id){state.backlog=state.backlog.filter(t=>String(t.id)!==String(id));saveState();renderBacklog();}
+
+function sendToBacklog(id){
+  const t=state.tasks.find(t=>t.id==id);if(!t)return;
+  modalMode="send-to-backlog";
+  const modal=document.getElementById("modal");
+  const title=document.getElementById("modal-title");
+  const body=document.getElementById("modal-body");
+  title.textContent="Send to backlog";
+  const CATS=["Leadership","Global Dashboard","Finance & Reporting","Data & Infrastructure","Projects","People & Training","Delegate / Batch","Other"];
+  body.innerHTML='<p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Move <strong style="color:var(--text);">'+escHtml(t.name)+'</strong> to the backlog for later.</p><div class="field"><label>Category</label><select id="m-cat">'+CATS.map(c=>'<option>'+escHtml(c)+'</option>').join('')+'</select></div><div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="confirmSendToBacklog('+id+')">Move to backlog</button></div>';
+  modal.classList.add("open");
+}
+
+function confirmSendToBacklog(id){
+  const t=state.tasks.find(t=>t.id==id);if(!t)return;
+  const cat=document.getElementById("m-cat").value;
+  // Add to backlog (avoid duplicate if it came from backlog originally)
+  const alreadyInBacklog=state.backlog.some(b=>b.name===t.name);
+  if(!alreadyInBacklog){
+    state.backlog.push({id:"b"+Date.now(),name:t.name,category:cat,strategic:t.strategic||3,blocking:t.blocking||2,delegatable:t.delegatable||false,dueDate:t.dueDate||null,inToday:false});
+  }
+  state.tasks=state.tasks.filter(t=>t.id!=id);
+  if(state.manualOrder)state.manualOrder=state.manualOrder.filter(mid=>String(mid)!==String(id));
+  saveState();closeModal();celebrate("Parked in backlog. Pick it up when ready.");render();
+}
 function resetDay(){if(!confirm("Reset all of today's progress?"))return;state.tasks.forEach(t=>t.status="todo");state.meta={score:0,streak:0,xp:0};state.manualOrder=null;saveState();render();}
 
 function makeSliders(strategic=3,blocking=2,delegatable=false){
@@ -1032,6 +1153,140 @@ function initTouchDrag(listEl, listName){
   });
 }
 
+// ── Inline due date ──────────────────────────────────────────────────────────
+function showInlineDue(id){
+  const w=document.getElementById("inline-due-"+id);
+  if(w){w.style.display="flex";}
+}
+function cancelInlineDue(id){
+  const w=document.getElementById("inline-due-"+id);
+  if(w){w.style.display="none";}
+}
+function saveInlineDue(id){
+  const inp=document.getElementById("inline-due-input-"+id);
+  if(!inp||!inp.value)return;
+  const t=state.tasks.find(t=>t.id==id);
+  if(!t)return;
+  t.dueDate=inp.value;
+  saveState();render();
+}
+
+// ── Carry-over ───────────────────────────────────────────────────────────────
+function getYesterday(){const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);}
+function checkCarryover(){
+  const banner=document.getElementById("carryover-banner");
+  if(!banner)return;
+  const yesterday=getYesterday();
+  const alreadyChecked=localStorage.getItem("dm_carryover_checked");
+  if(alreadyChecked===new Date().toISOString().slice(0,10)){banner.classList.remove("show");return;}
+  // Find tasks that were in yesterday's list but are still status todo/followup and haven't been touched today
+  const stale=state.tasks.filter(t=>(t.status==="todo"||t.status==="followup")&&t.carriedFrom&&t.carriedFrom<new Date().toISOString().slice(0,10));
+  if(!stale.length){banner.classList.remove("show");return;}
+  banner.classList.add("show");
+  const items=stale.map(t=>'<div class="carryover-item"><span>'+escHtml(t.name)+'</span><div class="carryover-actions"><button class="co-btn keep" onclick="carryoverKeep('+t.id+')">Keep today</button><button class="co-btn park" onclick="carryoverPark('+t.id+')">→ Backlog</button></div></div>').join("");
+  banner.innerHTML='<div class="carryover-title">⚠ '+stale.length+' task'+(stale.length>1?"s":"")+" carried over from yesterday — keep or park?</div><div class='carryover-list'>"+items+"</div><button class='co-btn dismiss-all' onclick='dismissCarryover()'>Dismiss</button>";
+}
+function carryoverKeep(id){
+  const t=state.tasks.find(t=>t.id==id);if(t)delete t.carriedFrom;
+  saveState();checkCarryover();renderToday();
+}
+function carryoverPark(id){
+  sendToBacklog(id);
+}
+function dismissCarryover(){
+  localStorage.setItem("dm_carryover_checked",new Date().toISOString().slice(0,10));
+  state.tasks.forEach(t=>{if(t.carriedFrom)delete t.carriedFrom;});
+  saveState();
+  const banner=document.getElementById("carryover-banner");
+  if(banner)banner.classList.remove("show");
+}
+function markTasksForCarryover(){
+  // Called at end of day / new day load — tags unfinished tasks
+  const todayStr=new Date().toISOString().slice(0,10);
+  state.tasks.forEach(t=>{
+    if((t.status==="todo"||t.status==="followup")&&!t.carriedFrom){
+      t.carriedFrom=todayStr;
+    }
+  });
+  saveState();
+}
+
+// ── Weekly log ───────────────────────────────────────────────────────────────
+function logTaskComplete(t){
+  if(!state.weekLog)state.weekLog={};
+  const key=new Date().toISOString().slice(0,10);
+  if(!state.weekLog[key])state.weekLog[key]=[];
+  state.weekLog[key].push({name:t.name,pts:calcScore(t),completedAt:Date.now()});
+}
+
+function getWeekStart(){
+  const d=new Date();
+  const day=d.getDay();
+  const diff=d.getDate()-(day===0?6:day-1);
+  const mon=new Date(d.setDate(diff));
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+function renderWeek(){
+  const el=document.getElementById("week-content");
+  if(!el)return;
+  const weekStart=getWeekStart();
+  const log=state.weekLog||{};
+  // Build 7 days Mon-Sun
+  const days=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(weekStart);
+    d.setDate(weekStart.getDate()+i);
+    days.push(d.toISOString().slice(0,10));
+  }
+  const allTasks=days.flatMap(d=>log[d]||[]);
+  const totalPts=allTasks.reduce((s,t)=>s+t.pts,0);
+  const totalDone=allTasks.length;
+  const activeDays=days.filter(d=>log[d]&&log[d].length>0).length;
+  // Summary stats
+  let html='<div class="week-summary-grid">';
+  html+='<div class="week-stat"><div class="wv">'+totalDone+'</div><div class="wl">Tasks done</div></div>';
+  html+='<div class="week-stat"><div class="wv">'+totalPts+'</div><div class="wl">Points earned</div></div>';
+  html+='<div class="week-stat"><div class="wv">'+activeDays+'/7</div><div class="wl">Active days</div></div>';
+  html+='</div>';
+  // Day-by-day breakdown
+  const today=new Date().toISOString().slice(0,10);
+  const dayNames=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  let anyData=false;
+  days.forEach((d,i)=>{
+    const entries=log[d]||[];
+    if(entries.length===0&&d>today)return; // skip future days
+    anyData=true;
+    const isToday=d===today;
+    const dayPts=entries.reduce((s,t)=>s+t.pts,0);
+    html+='<div class="week-day-section"><div class="week-day-head">'+dayNames[i]+(isToday?' <span style="color:var(--accent);border-color:var(--accent);">Today</span>':'')+(entries.length?'<span>'+dayPts+' pts</span>':'')+'</div>';
+    if(!entries.length){
+      html+='<div style="font-size:12px;color:var(--text3);padding:6px 0;">'+(d<=today?'Nothing completed':'Future')+'</div>';
+    } else {
+      entries.forEach(t=>{
+        html+='<div class="week-task-row"><div class="week-tick">✓</div><span>'+escHtml(t.name)+'</span><span class="week-pts">+'+t.pts+'</span></div>';
+      });
+    }
+    html+='</div>';
+  });
+  if(!anyData)html+='<div class="week-empty">No tasks completed this week yet — get going!</div>';
+  el.innerHTML=html;
+}
+
+function onTodaySearch(inp){todaySearchQuery=inp.value.trim().toLowerCase();const clr=document.getElementById("today-search-clear");if(clr)clr.classList.toggle("visible",todaySearchQuery.length>0);renderToday();}
+function clearTodaySearch(){todaySearchQuery="";const inp=document.getElementById("today-search");if(inp)inp.value="";const clr=document.getElementById("today-search-clear");if(clr)clr.classList.remove("visible");renderToday();}
+function onBacklogSearch(inp){backlogSearchQuery=inp.value.trim().toLowerCase();const clr=document.getElementById("backlog-search-clear");if(clr)clr.classList.toggle("visible",backlogSearchQuery.length>0);renderBacklog();}
+function clearBacklogSearch(){backlogSearchQuery="";const inp=document.getElementById("backlog-search");if(inp)inp.value="";const clr=document.getElementById("backlog-search-clear");if(clr)clr.classList.remove("visible");renderBacklog();}
+
+// Mark unfinished tasks for carryover check on first load of new day
+(function(){
+  const lastDate=localStorage.getItem("dm_last_open_date");
+  const today=new Date().toISOString().slice(0,10);
+  if(lastDate&&lastDate!==today){markTasksForCarryover();}
+  localStorage.setItem("dm_last_open_date",today);
+})();
+
 render();
 syncFromCloud();
 </script>
@@ -1042,8 +1297,11 @@ syncFromCloud();
   <button class="mob-nav-btn" id="mob-nav-backlog" onclick="switchView('backlog')">
     <span class="mob-nav-icon">&#9776;</span>Backlog
   </button>
+  <button class="mob-nav-btn" id="mob-nav-week" onclick="switchView('week')">
+    <span class="mob-nav-icon">&#128197;</span>Week
+  </button>
   <button class="mob-nav-btn" id="mob-nav-add" onclick="openModal('today-new')">
-    <span class="mob-nav-icon">&#43;</span>Add task
+    <span class="mob-nav-icon">&#43;</span>Add
   </button>
 </nav>
 </body>
