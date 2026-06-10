@@ -449,16 +449,18 @@ async function syncFromCloud(){
   setSyncStatus("⟳ Syncing…");
   try {
     const r = await fetch(JSONBIN_URL+"/latest", {
-      headers:{"X-Master-Key": JSONBIN_KEY}
+      headers:{"X-Master-Key": JSONBIN_KEY, "X-Bin-Meta": "false"}
     });
     if(!r.ok) throw new Error("Fetch failed "+r.status);
-    const data = await r.json();
-    const remote = data.record;
-    if(remote && remote.tasks && remote.tasks.length){
+    const remote = await r.json();
+    // Always trust remote if it has been initialised (has a tasks array)
+    if(remote && Array.isArray(remote.tasks)){
       state.tasks = remote.tasks;
-      state.meta = remote.meta || state.meta;
-      state.backlog = remote.backlog && remote.backlog.length ? remote.backlog : state.backlog;
+      state.meta = remote.meta || {score:0,streak:0,xp:0};
+      state.backlog = Array.isArray(remote.backlog) && remote.backlog.length ? remote.backlog : state.backlog;
       state.manualOrder = remote.manualOrder || null;
+      // Clear any stale local keys so remote always wins on next load
+      Object.keys(localStorage).filter(k=>k.startsWith("dm_")).forEach(k=>localStorage.removeItem(k));
       saveLocalCache(state);
       render();
     }
@@ -479,7 +481,11 @@ function saveState(){
       const payload = {tasks:state.tasks, meta:state.meta, backlog:state.backlog, manualOrder:state.manualOrder};
       const r = await fetch(JSONBIN_URL, {
         method:"PUT",
-        headers:{"Content-Type":"application/json","X-Master-Key": JSONBIN_KEY},
+        headers:{
+          "Content-Type":"application/json",
+          "X-Master-Key": JSONBIN_KEY,
+          "X-Bin-Versioning": "false"
+        },
         body: JSON.stringify(payload)
       });
       if(!r.ok) throw new Error("Save failed "+r.status);
