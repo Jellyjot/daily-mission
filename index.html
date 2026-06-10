@@ -116,7 +116,9 @@
   /* Category manager */
   .cat-manager-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
   .cat-manager-row:last-child{border-bottom:none;}
-  .cat-manager-name{flex:1;font-size:13px;color:var(--text2);}
+  .cat-manager-info{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+  .cat-manager-btns{display:flex;gap:6px;flex-shrink:0;}
+  .cat-manager-name{font-size:13px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cat-manager-count{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 7px;flex-shrink:0;}
   .cat-edit-input{flex:1;background:var(--surface2);border:1px solid var(--accent);color:var(--text);border-radius:6px;padding:5px 10px;font-size:13px;font-family:'Inter',sans-serif;outline:none;}
   .cat-add-row{display:flex;gap:8px;margin-top:14px;}
@@ -276,6 +278,15 @@
     .score-sliders{padding:12px;}
     .slider-label{width:110px;font-size:11px;}
     .tooltip{display:none!important;}
+    /* Category manager mobile */
+    .cat-manager-row{flex-wrap:wrap;row-gap:8px;}
+    .cat-manager-info{width:100%;flex:none;}
+    .cat-manager-name{font-size:14px;white-space:normal;}
+    .cat-manager-btns{width:100%;display:flex;gap:6px;}
+    .cat-manager-btns .action-btn{flex:1;text-align:center;padding:8px 4px;font-size:12px;border-radius:8px;}
+    .cat-edit-input{width:100%;}
+    .cat-add-row{flex-direction:column;}
+    .cat-add-btn{width:100%;padding:12px;}
   }
 </style>
 </head>
@@ -365,7 +376,7 @@
   <div class="view" id="view-backlog">
     <div class="main-header">
       <div class="main-title">Backlog</div>
-      <div class="header-actions">
+      <div class="header-actions" style="flex-wrap:wrap;justify-content:flex-end;">
         <button class="add-btn-sec" onclick="openCatManager()">Manage categories</button>
         <button class="add-btn" onclick="openModal('backlog-new')">+ Add to backlog</button>
       </div>
@@ -1216,10 +1227,12 @@ function renderCatManager(){
   let rows=cats.map((c,i)=>{
     const n=counts[c]||0;
     return'<div class="cat-manager-row" id="cat-row-'+i+'">'
-      +'<span class="cat-manager-name" id="cat-name-'+i+'">'+escHtml(c)+'</span>'
-      +'<span class="cat-manager-count">'+n+' task'+(n===1?'':'s')+'</span>'
+      +'<div class="cat-manager-info"><span class="cat-manager-name" id="cat-name-'+i+'">'+escHtml(c)+'</span>'
+      +'<span class="cat-manager-count">'+n+' task'+(n===1?'':'s')+'</span></div>'
+      +'<div class="cat-manager-btns">'
       +'<button class="action-btn edit-btn" onclick="startCatRename('+i+')">Rename</button>'
       +(cats.length>1?'<button class="action-btn delete-btn" onclick="deleteCat('+i+')">Delete</button>':'')
+      +'</div>'
       +'</div>';
   }).join('');
   body.innerHTML='<div style="max-height:340px;overflow-y:auto;margin-bottom:4px;">'+rows+'</div>'
@@ -1264,16 +1277,42 @@ function deleteCat(idx){
   const cats=getCategories();
   const toDelete=cats[idx];
   const affected=state.backlog.filter(t=>t.category===toDelete);
-  // Find a fallback category
-  const fallback=cats.find(c=>c!==toDelete)||"Other";
-  let msg='Delete category "'+toDelete+'"?';
-  if(affected.length)msg+='\n\n'+affected.length+' task'+(affected.length===1?'':'s')+' will be moved to "'+fallback+'".';
-  if(!confirm(msg))return;
-  state.backlog.forEach(t=>{if(t.category===toDelete)t.category=fallback;});
+  const remaining=cats.filter(c=>c!==toDelete);
+
+  if(!affected.length){
+    // No tasks — just confirm and delete
+    if(!confirm('Delete category "'+toDelete+'"?\n\nNo tasks are in this category.'))return;
+    state.categories.splice(idx,1);
+    saveState();renderCatManager();renderBacklog();return;
+  }
+
+  // Tasks exist — show reassignment modal
+  const body=document.getElementById("modal-body");
+  const title=document.getElementById("modal-title");
+  title.textContent='Delete "'+toDelete+'"';
+  const opts=remaining.map(c=>'<option value="'+escHtml(c)+'">'+escHtml(c)+'</option>').join('');
+  body.innerHTML='<p style="font-size:13px;color:var(--text2);margin-bottom:16px;">'
+    +'<strong style="color:var(--red);">'+affected.length+' task'+(affected.length===1?'':'s')+'</strong> '
+    +' in this category. Where should '+(affected.length===1?'it':'they')+' go?</p>'
+    +'<div class="field"><label>Move tasks to</label><select id="reassign-cat">'+opts+'</select></div>'
+    +'<div style="max-height:180px;overflow-y:auto;margin-bottom:16px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;">'
+    +affected.map(t=>'<div style="font-size:12px;color:var(--text3);padding:3px 0;border-bottom:1px solid var(--border);">'+escHtml(t.name)+'</div>').join('')
+    +'</div>'
+    +'<div class="modal-actions">'
+    +'<button class="modal-cancel" onclick="openCatManager()">Cancel</button>'
+    +'<button class="modal-save" style="background:var(--red);" onclick="confirmDeleteCat('+idx+')">Move &amp; delete</button>'
+    +'</div>';
+}
+
+function confirmDeleteCat(idx){
+  const cats=getCategories();
+  const toDelete=cats[idx];
+  const reassignEl=document.getElementById("reassign-cat");
+  if(!reassignEl)return;
+  const target=reassignEl.value;
+  state.backlog.forEach(t=>{if(t.category===toDelete)t.category=target;});
   state.categories.splice(idx,1);
-  saveState();
-  renderCatManager();
-  renderBacklog();
+  saveState();renderCatManager();renderBacklog();
 }
 
 function addNewCat(){
