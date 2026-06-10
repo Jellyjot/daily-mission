@@ -231,6 +231,11 @@
   .week-tick{width:16px;height:16px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#0e1217;font-weight:700;}
   .week-pts{margin-left:auto;font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);}
   .week-empty{color:var(--text3);font-size:13px;padding:20px;text-align:center;border:1px dashed var(--border);border-radius:8px;}
+  .tag-recur{background:#0a2218;color:#4ecb8a;border:1px solid #1a4a30;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500;letter-spacing:.04em;white-space:nowrap;}
+  .recur-select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Inter',sans-serif;outline:none;}
+  .recur-select:focus{border-color:var(--accent);}
+  .recur-select option{background:var(--surface2);}
+  .recur-section-head{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:#4ecb8a;opacity:.7;margin-bottom:8px;margin-top:20px;}
 
   .mob-header{display:none;}
   .mob-stats{display:none;}
@@ -337,6 +342,7 @@
       <button class="nav-tab" id="nav-backlog" onclick="switchView('backlog')">Backlog</button>
       <button class="nav-tab" id="nav-week" onclick="switchView('week')">Week</button>
       <button class="nav-tab" id="nav-robbie" onclick="switchView('robbie')" style="color:#7ecb6a;opacity:.7;">Robbie</button>
+      <button class="nav-tab" id="nav-recurring" onclick="switchView('recurring')" style="color:#4ecb8a;opacity:.7;">↻ Recur</button>
     </div>
   </div>
   <div class="sidebar-footer">
@@ -407,6 +413,15 @@
       <div class="main-title">This week</div>
     </div>
     <div id="week-content"></div>
+  </div>
+  <div class="view" id="view-recurring">
+    <div class="main-header">
+      <div class="main-title">Recurring tasks</div>
+      <div class="header-actions">
+        <button class="add-btn" onclick="openAddRecurModal()">+ Add recurring</button>
+      </div>
+    </div>
+    <div id="recurring-list"></div>
   </div>
 </main>
 </div>
@@ -516,6 +531,7 @@ function defaultState(){
   const manualOrder=JSON.parse(localStorage.getItem(todayKey("manual_order"))||"null");
   const weekLog=JSON.parse(localStorage.getItem("dm_weeklog")||"null");
   const categories=JSON.parse(localStorage.getItem("dm_categories")||"null");
+  const recurringTemplates=JSON.parse(localStorage.getItem("dm_recurring")||"null");
   const DEFAULT_CATS=["Leadership","Global Dashboard","Finance & Reporting","Data & Infrastructure","Projects","People & Training","Delegate / Batch","Other"];
   return{
     tasks:tasks||[
@@ -532,7 +548,8 @@ function defaultState(){
     backlog:backlog||BACKLOG_DEFAULT.map(t=>({...t,inToday:false})),
     manualOrder:manualOrder||null,
     weekLog:weekLog||{},
-    categories:categories||DEFAULT_CATS
+    categories:categories||DEFAULT_CATS,
+    recurringTemplates:recurringTemplates||[]
   };
 }
 
@@ -548,6 +565,7 @@ function saveLocalCache(s){
   else localStorage.removeItem(todayKey("manual_order"));
   if(s.weekLog)localStorage.setItem("dm_weeklog",JSON.stringify(s.weekLog));
   if(s.categories)localStorage.setItem("dm_categories",JSON.stringify(s.categories));
+  if(s.recurringTemplates)localStorage.setItem("dm_recurring",JSON.stringify(s.recurringTemplates));
 }
 
 function setSyncStatus(msg, colour){
@@ -574,6 +592,7 @@ async function syncFromCloud(){
       state.manualOrder = remote.manualOrder || null;
       state.weekLog = remote.weekLog || {};
       state.categories = Array.isArray(remote.categories) && remote.categories.length ? remote.categories : state.categories;
+      state.recurringTemplates = Array.isArray(remote.recurringTemplates) ? remote.recurringTemplates : (state.recurringTemplates||[]);
       // Clear any stale local keys so remote always wins on next load
       Object.keys(localStorage).filter(k=>k.startsWith("dm_")).forEach(k=>localStorage.removeItem(k));
       saveLocalCache(state);
@@ -593,7 +612,7 @@ function saveState(){
   setSyncStatus("⟳ Saving…", "var(--text2)");
   saveDebounceTimer = setTimeout(async()=>{
     try {
-      const payload = {tasks:state.tasks, meta:state.meta, backlog:state.backlog, manualOrder:state.manualOrder, weekLog:state.weekLog, categories:state.categories};
+      const payload = {tasks:state.tasks, meta:state.meta, backlog:state.backlog, manualOrder:state.manualOrder, weekLog:state.weekLog, categories:state.categories, recurringTemplates:state.recurringTemplates};
       const r = await fetch(JSONBIN_URL, {
         method:"PUT",
         headers:{
@@ -629,6 +648,131 @@ function getNextXP(xp){for(let i=0;i<LEVELS.length;i++){if(LEVELS[i].xp>xp)retur
 function escHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function getCategories(){return state.categories&&state.categories.length?state.categories:["Leadership","Global Dashboard","Finance & Reporting","Data & Infrastructure","Projects","People & Training","Delegate / Batch","Other"];}
 function catSelectHtml(selectedVal){return getCategories().map(c=>'<option'+(c===selectedVal?' selected':'')+'>'+escHtml(c)+'</option>').join('');}
+
+// ── Recurring tasks ──────────────────────────────────────────────────────────
+function recurSelectHtml(val){
+  const opts=[["","None — one-time task"],["daily","Daily"],["weekly","Weekly"],["monthly","Monthly"]];
+  return opts.map(([v,l])=>'<option value="'+v+'"'+(v===(val||"")?' selected':'')+'>'+l+'</option>').join('');
+}
+
+function shouldSpawnToday(tpl){
+  const today=new Date().toISOString().slice(0,10);
+  if(tpl.lastSpawned===today)return false; // already spawned today
+  const last=tpl.lastSpawned?new Date(tpl.lastSpawned):null;
+  const now=new Date();
+  if(tpl.recurrence==="daily"){
+    if(!last)return true;
+    const diffMs=now-last;
+    return diffMs>=23*60*60*1000; // allow a little slack
+  }
+  if(tpl.recurrence==="weekly"){
+    if(!last)return true;
+    const diffDays=Math.floor((now-last)/(1000*60*60*24));
+    return diffDays>=7;
+  }
+  if(tpl.recurrence==="monthly"){
+    if(!last)return true;
+    // same day-of-month or later in next month
+    const lastDate=new Date(last);
+    return(now.getFullYear()>lastDate.getFullYear())||(now.getMonth()>lastDate.getMonth());
+  }
+  return false;
+}
+
+function spawnRecurringTasks(){
+  if(!state.recurringTemplates||!state.recurringTemplates.length)return;
+  const today=new Date().toISOString().slice(0,10);
+  let spawned=0;
+  state.recurringTemplates.forEach(tpl=>{
+    if(!shouldSpawnToday(tpl))return;
+    // Don't spawn if already active in today
+    const alreadyActive=state.tasks.some(t=>t.recurId===tpl.id&&(t.status==="todo"||t.status==="followup"));
+    if(alreadyActive)return;
+    state.tasks.push({id:Date.now()+Math.random(),name:tpl.name,strategic:tpl.strategic||3,blocking:tpl.blocking||2,delegatable:tpl.delegatable||false,status:"todo",recurId:tpl.id,recurrence:tpl.recurrence,category:tpl.category||""});
+    tpl.lastSpawned=today;
+    spawned++;
+  });
+  if(spawned>0){saveState();}
+}
+
+function deleteRecurringTemplate(id){
+  state.recurringTemplates=(state.recurringTemplates||[]).filter(t=>t.id!==id);
+  saveState();renderRecurring();
+}
+
+function renderRecurring(){
+  const el=document.getElementById("recurring-list");
+  if(!el)return;
+  const tmpls=state.recurringTemplates||[];
+  if(!tmpls.length){
+    el.innerHTML='<div class="empty-state">No recurring tasks yet.<br>Add one using the button above.</div>';
+    return;
+  }
+  el.innerHTML="";
+  const groups={daily:[],weekly:[],monthly:[]};
+  tmpls.forEach(t=>{if(groups[t.recurrence])groups[t.recurrence].push(t);});
+  const labels={daily:"Daily",weekly:"Weekly",monthly:"Monthly"};
+  ["daily","weekly","monthly"].forEach(r=>{
+    const items=groups[r];
+    if(!items.length)return;
+    const head=document.createElement("div");
+    head.className="recur-section-head";
+    head.textContent=labels[r]+" ("+items.length+")";
+    el.appendChild(head);
+    items.forEach(t=>{
+      const card=document.createElement("div");
+      card.className="task-card";
+      const lastS=t.lastSpawned?'<span style="font-size:11px;color:var(--text3);">Last: '+new Date(t.lastSpawned).toLocaleDateString("en-GB",{day:"numeric",month:"short"})+'</span>':"";
+      card.innerHTML='<div class="check-btn" style="cursor:default;opacity:.2;"></div><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta"><span class="tag-recur">↻ '+labels[r]+'</span>'+(t.category?'<span style="font-size:11px;color:var(--text3);">'+escHtml(t.category)+'</span>':'')+lastS+'</div></div><div class="task-actions"><button class="action-btn edit-btn" onclick="openEditRecurModal(\''+t.id+'\')">Edit</button><button class="action-btn delete-btn" onclick="deleteRecurringTemplate(\''+t.id+'\')">Remove</button></div>';
+      el.appendChild(card);
+    });
+  });
+}
+
+function openAddRecurModal(){
+  modalMode="recur-new";
+  const modal=document.getElementById("modal");
+  document.getElementById("modal-title").textContent="Add recurring task";
+  const catField='<div class="field"><label>Category</label><select id="m-cat">'+catSelectHtml('')+'</select></div>';
+  document.getElementById("modal-body").innerHTML='<div class="field"><label>Task name</label><input type="text" id="m-name" placeholder="e.g. Review AR waterfall"/></div>'+catField+'<div class="field"><label>Repeats</label><select class="recur-select" id="m-recur">'+recurSelectHtml('')+'</select></div>'+makeSliders()+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveRecurModal(null)">Save</button></div>';
+  setTimeout(updateScorePreview,10);
+  document.getElementById("m-name").focus();
+  modal.classList.add("open");
+}
+
+function openEditRecurModal(id){
+  const tpl=(state.recurringTemplates||[]).find(t=>t.id===id);
+  if(!tpl)return;
+  modalMode="recur-edit";
+  const modal=document.getElementById("modal");
+  document.getElementById("modal-title").textContent="Edit recurring task";
+  const catField='<div class="field"><label>Category</label><select id="m-cat">'+catSelectHtml(tpl.category||'')+'</select></div>';
+  document.getElementById("modal-body").innerHTML='<div class="field"><label>Task name</label><input type="text" id="m-name" value="'+escHtml(tpl.name)+'"/></div>'+catField+'<div class="field"><label>Repeats</label><select class="recur-select" id="m-recur">'+recurSelectHtml(tpl.recurrence)+'</select></div>'+makeSliders(tpl.strategic||3,tpl.blocking||2,tpl.delegatable||false)+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveRecurModal(\''+id+'\')">Save</button></div>';
+  setTimeout(updateScorePreview,10);
+  modal.classList.add("open");
+}
+
+function saveRecurModal(editId){
+  const name=document.getElementById("m-name").value.trim();
+  if(!name)return;
+  const recur=document.getElementById("m-recur").value;
+  if(!recur){alert("Please choose a recurrence frequency.");return;}
+  const strategic=parseInt(document.getElementById("m-strategic").value);
+  const blocking=parseInt(document.getElementById("m-blocking").value);
+  const delegatable=document.getElementById("m-delegatable").checked;
+  const catEl=document.getElementById("m-cat");
+  const category=catEl?catEl.value:"";
+  if(!state.recurringTemplates)state.recurringTemplates=[];
+  if(editId){
+    const tpl=state.recurringTemplates.find(t=>t.id===editId);
+    if(tpl){tpl.name=name;tpl.recurrence=recur;tpl.strategic=strategic;tpl.blocking=blocking;tpl.delegatable=delegatable;tpl.category=category;}
+  } else {
+    state.recurringTemplates.push({id:"r"+Date.now(),name,recurrence:recur,strategic,blocking,delegatable,category,lastSpawned:null});
+  }
+  saveState();closeModal();renderRecurring();
+  // Immediately spawn if due
+  spawnRecurringTasks();render();
+}
 
 function switchView(v){
   currentView=v;
@@ -677,6 +821,7 @@ function render(){
   else if(currentView==="backlog")renderBacklog();
   else if(currentView==="week")renderWeek();
   else if(currentView==="robbie")renderRobbie();
+  else if(currentView==="recurring")renderRecurring();
 }
 
 function getOrderedTodo(){
@@ -755,6 +900,8 @@ function renderList(elId,tasks,isDraggable){
     const fuTag=t.status==="followup"?'<span class="tag tag-followup">Follow up</span>':"";
     const delegateTag=t.delegatable?'<span class="tag tag-delegate">Delegate</span>':"";
     const robbieTag=t.robbieFlag?'<span class="tag tag-robbie" onclick="toggleRobbie('+t.id+',\'today\')" title="Remove Robbie flag">🟢 Robbie</span>':'';    const dueChip=t.status!=="done"?dueDateChip(t):"";
+    const recurLabel={daily:"Daily",weekly:"Weekly",monthly:"Monthly"};
+    const recurChip=t.recurrence?'<span class="tag-recur">↻ '+recurLabel[t.recurrence]+'</span>':"";
     const addDueLink=(t.status==="todo"&&!t.dueDate)?'<span class="add-due-link" onclick="showInlineDue('+t.id+')">+ due date</span>':"";
     const inlineDueWrap='<div class="inline-due-wrap" id="inline-due-'+t.id+'" style="display:none;"><input class="inline-due-input" type="date" id="inline-due-input-'+t.id+'" color-scheme="dark"><button class="inline-due-save" onclick="saveInlineDue('+t.id+')">Set</button><button class="inline-due-cancel" onclick="cancelInlineDue('+t.id+')">✕</button></div>';
     const scoreBadge=t.status!=="done"?'<span class="score-badge '+scoreLabel(score)+'" data-id="'+t.id+'" onmouseenter="showTip(event,\''+t.id+'\',\'today\')" onmouseleave="hideTip()">&#9650; '+score+'</span>':"";
@@ -765,7 +912,7 @@ function renderList(elId,tasks,isDraggable){
     else if(t.status==="followup"){actions='<button class="action-btn" onclick="completeTask('+t.id+')">Done</button><button class="action-btn undo-btn" onclick="undoTask('+t.id+')">Undo</button><button class="action-btn edit-btn" onclick="openEditModal('+t.id+',\'today\')">Edit</button><button class="action-btn robbie-btn" onclick="toggleRobbie('+t.id+',\'today\')" title="'+(t.robbieFlag?'Remove Robbie flag':'Flag for Robbie')+'">'+(t.robbieFlag?'🟢 Robbie':'+ Robbie')+'</button><button class="action-btn backlog-btn" onclick="sendToBacklog('+t.id+')">→ Backlog</button><button class="action-btn delete-btn" onclick="removeToday('+t.id+')">Remove</button>';}
     else{actions='<button class="action-btn undo-btn" onclick="undoTask('+t.id+')">Undo</button>';}
     const commentSection=t.status==="followup"?(t.comment?'<div class="comment-display" onclick="editComment('+t.id+')" title="Click to edit">&#8203;'+escHtml(t.comment)+'</div>':'<div class="comment-row"><textarea class="comment-input" id="comment-'+t.id+'" placeholder="What are you waiting on?" rows="1"></textarea><button class="comment-save-btn" onclick="saveComment('+t.id+')">Save</button></div>'):"";
-    card.innerHTML=handle+'<button class="check-btn" onclick="'+(t.status==='todo'?'completeTask':'undoTask')+'('+t.id+')" aria-label="toggle"><span class="check-icon">'+checkIcon+'</span></button><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+fuTag+delegateTag+robbieTag+dueChip+addDueLink+scoreBadge+rankBadge+ptsLabel+'</div>'+inlineDueWrap+commentSection+'</div><div class="task-actions">'+actions+'</div>';
+    card.innerHTML=handle+'<button class="check-btn" onclick="'+(t.status==='todo'?'completeTask':'undoTask')+'('+t.id+')" aria-label="toggle"><span class="check-icon">'+checkIcon+'</span></button><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+fuTag+delegateTag+robbieTag+recurChip+dueChip+addDueLink+scoreBadge+rankBadge+ptsLabel+'</div>'+inlineDueWrap+commentSection+'</div><div class="task-actions">'+actions+'</div>';
     el.appendChild(card);
   });
 }
@@ -1500,6 +1647,7 @@ function clearBacklogSearch(){backlogSearchQuery="";const inp=document.getElemen
   const today=new Date().toISOString().slice(0,10);
   if(lastDate&&lastDate!==today){markTasksForCarryover();}
   localStorage.setItem("dm_last_open_date",today);
+  spawnRecurringTasks();
 })();
 
 render();
@@ -1517,6 +1665,9 @@ syncFromCloud();
   </button>
   <button class="mob-nav-btn" id="mob-nav-robbie" onclick="switchView('robbie')" style="color:#7ecb6a;">
     <span class="mob-nav-icon">&#128172;</span>Robbie
+  </button>
+  <button class="mob-nav-btn" id="mob-nav-recurring" onclick="switchView('recurring')" style="color:#4ecb8a;">
+    <span class="mob-nav-icon">&#8635;</span>Recur
   </button>
   <button class="mob-nav-btn" id="mob-nav-add" onclick="openModal('today-new')">
     <span class="mob-nav-icon">&#43;</span>Add
