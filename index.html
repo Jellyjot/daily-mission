@@ -342,7 +342,6 @@
       <button class="nav-tab" id="nav-backlog" onclick="switchView('backlog')">Backlog</button>
       <button class="nav-tab" id="nav-week" onclick="switchView('week')">Week</button>
       <button class="nav-tab" id="nav-robbie" onclick="switchView('robbie')" style="color:#7ecb6a;opacity:.7;">Robbie</button>
-      <button class="nav-tab" id="nav-recurring" onclick="switchView('recurring')" style="color:#4ecb8a;opacity:.7;">↻ Recur</button>
     </div>
   </div>
   <div class="sidebar-footer">
@@ -413,15 +412,6 @@
       <div class="main-title">This week</div>
     </div>
     <div id="week-content"></div>
-  </div>
-  <div class="view" id="view-recurring">
-    <div class="main-header">
-      <div class="main-title">Recurring tasks</div>
-      <div class="header-actions">
-        <button class="add-btn" onclick="openAddRecurModal()">+ Add recurring</button>
-      </div>
-    </div>
-    <div id="recurring-list"></div>
   </div>
 </main>
 </div>
@@ -680,16 +670,17 @@ function shouldSpawnToday(tpl){
 }
 
 function spawnRecurringTasks(){
-  if(!state.recurringTemplates||!state.recurringTemplates.length)return;
   const today=new Date().toISOString().slice(0,10);
   let spawned=0;
-  state.recurringTemplates.forEach(tpl=>{
-    if(!shouldSpawnToday(tpl))return;
+  (state.backlog||[]).forEach(bt=>{
+    if(!bt.recurrence)return;
+    if(!shouldSpawnToday(bt))return;
     // Don't spawn if already active in today
-    const alreadyActive=state.tasks.some(t=>t.recurId===tpl.id&&(t.status==="todo"||t.status==="followup"));
+    const alreadyActive=state.tasks.some(t=>String(t.recurBacklogId)===String(bt.id)&&(t.status==="todo"||t.status==="followup"));
     if(alreadyActive)return;
-    state.tasks.push({id:Date.now()+Math.random(),name:tpl.name,strategic:tpl.strategic||3,blocking:tpl.blocking||2,delegatable:tpl.delegatable||false,status:"todo",recurId:tpl.id,recurrence:tpl.recurrence,category:tpl.category||""});
-    tpl.lastSpawned=today;
+    bt.inToday=true;
+    bt.lastSpawned=today;
+    state.tasks.push({id:Date.now()+Math.random(),name:bt.name,strategic:bt.strategic||3,blocking:bt.blocking||2,delegatable:bt.delegatable||false,dueDate:bt.dueDate||null,status:"todo",recurrence:bt.recurrence,recurBacklogId:bt.id,category:bt.category||""});
     spawned++;
   });
   if(spawned>0){saveState();}
@@ -700,79 +691,9 @@ function deleteRecurringTemplate(id){
   saveState();renderRecurring();
 }
 
-function renderRecurring(){
-  const el=document.getElementById("recurring-list");
-  if(!el)return;
-  const tmpls=state.recurringTemplates||[];
-  if(!tmpls.length){
-    el.innerHTML='<div class="empty-state">No recurring tasks yet.<br>Add one using the button above.</div>';
-    return;
-  }
-  el.innerHTML="";
-  const groups={daily:[],weekly:[],monthly:[]};
-  tmpls.forEach(t=>{if(groups[t.recurrence])groups[t.recurrence].push(t);});
-  const labels={daily:"Daily",weekly:"Weekly",monthly:"Monthly"};
-  ["daily","weekly","monthly"].forEach(r=>{
-    const items=groups[r];
-    if(!items.length)return;
-    const head=document.createElement("div");
-    head.className="recur-section-head";
-    head.textContent=labels[r]+" ("+items.length+")";
-    el.appendChild(head);
-    items.forEach(t=>{
-      const card=document.createElement("div");
-      card.className="task-card";
-      const lastS=t.lastSpawned?'<span style="font-size:11px;color:var(--text3);">Last: '+new Date(t.lastSpawned).toLocaleDateString("en-GB",{day:"numeric",month:"short"})+'</span>':"";
-      card.innerHTML='<div class="check-btn" style="cursor:default;opacity:.2;"></div><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta"><span class="tag-recur">↻ '+labels[r]+'</span>'+(t.category?'<span style="font-size:11px;color:var(--text3);">'+escHtml(t.category)+'</span>':'')+lastS+'</div></div><div class="task-actions"><button class="action-btn edit-btn" onclick="openEditRecurModal(\''+t.id+'\')">Edit</button><button class="action-btn delete-btn" onclick="deleteRecurringTemplate(\''+t.id+'\')">Remove</button></div>';
-      el.appendChild(card);
-    });
-  });
-}
+// renderRecurring removed — recurrence managed inline via modals
 
-function openAddRecurModal(){
-  modalMode="recur-new";
-  const modal=document.getElementById("modal");
-  document.getElementById("modal-title").textContent="Add recurring task";
-  const catField='<div class="field"><label>Category</label><select id="m-cat">'+catSelectHtml('')+'</select></div>';
-  document.getElementById("modal-body").innerHTML='<div class="field"><label>Task name</label><input type="text" id="m-name" placeholder="e.g. Review AR waterfall"/></div>'+catField+'<div class="field"><label>Repeats</label><select class="recur-select" id="m-recur">'+recurSelectHtml('')+'</select></div>'+makeSliders()+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveRecurModal(null)">Save</button></div>';
-  setTimeout(updateScorePreview,10);
-  document.getElementById("m-name").focus();
-  modal.classList.add("open");
-}
-
-function openEditRecurModal(id){
-  const tpl=(state.recurringTemplates||[]).find(t=>t.id===id);
-  if(!tpl)return;
-  modalMode="recur-edit";
-  const modal=document.getElementById("modal");
-  document.getElementById("modal-title").textContent="Edit recurring task";
-  const catField='<div class="field"><label>Category</label><select id="m-cat">'+catSelectHtml(tpl.category||'')+'</select></div>';
-  document.getElementById("modal-body").innerHTML='<div class="field"><label>Task name</label><input type="text" id="m-name" value="'+escHtml(tpl.name)+'"/></div>'+catField+'<div class="field"><label>Repeats</label><select class="recur-select" id="m-recur">'+recurSelectHtml(tpl.recurrence)+'</select></div>'+makeSliders(tpl.strategic||3,tpl.blocking||2,tpl.delegatable||false)+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveRecurModal(\''+id+'\')">Save</button></div>';
-  setTimeout(updateScorePreview,10);
-  modal.classList.add("open");
-}
-
-function saveRecurModal(editId){
-  const name=document.getElementById("m-name").value.trim();
-  if(!name)return;
-  const recur=document.getElementById("m-recur").value;
-  if(!recur){alert("Please choose a recurrence frequency.");return;}
-  const strategic=parseInt(document.getElementById("m-strategic").value);
-  const blocking=parseInt(document.getElementById("m-blocking").value);
-  const delegatable=document.getElementById("m-delegatable").checked;
-  const catEl=document.getElementById("m-cat");
-  const category=catEl?catEl.value:"";
-  if(!state.recurringTemplates)state.recurringTemplates=[];
-  if(editId){
-    const tpl=state.recurringTemplates.find(t=>t.id===editId);
-    if(tpl){tpl.name=name;tpl.recurrence=recur;tpl.strategic=strategic;tpl.blocking=blocking;tpl.delegatable=delegatable;tpl.category=category;}
-  } else {
-    state.recurringTemplates.push({id:"r"+Date.now(),name,recurrence:recur,strategic,blocking,delegatable,category,lastSpawned:null});
-  }
-  saveState();closeModal();renderRecurring();
-  // Immediately spawn if due
-  spawnRecurringTasks();render();
-}
+// renderRecurring and openAddRecurModal/openEditRecurModal removed — recurrence is now part of the standard add/edit modals
 
 function switchView(v){
   currentView=v;
@@ -821,7 +742,6 @@ function render(){
   else if(currentView==="backlog")renderBacklog();
   else if(currentView==="week")renderWeek();
   else if(currentView==="robbie")renderRobbie();
-  else if(currentView==="recurring")renderRecurring();
 }
 
 function getOrderedTodo(){
@@ -1096,12 +1016,14 @@ function renderBacklog(){
       const score=t._score;
       const delegateTag=t.delegatable?'<span class="tag tag-delegate">Delegate</span>':"";
       const robbieTag=t.robbieFlag?'<span class="tag tag-robbie" onclick="toggleRobbie(\''+t.id+'\',\'backlog\')" title="Remove Robbie flag">🟢 Robbie</span>':'';
+      const recurLabel={daily:"Daily",weekly:"Weekly",monthly:"Monthly"};
+      const recurChip=t.recurrence?'<span class="tag-recur">↻ '+recurLabel[t.recurrence]+'</span>':"";
       const dueChip=dueDateChip(t);
       const scoreBadge='<span class="score-badge '+scoreLabel(score)+'" data-id="'+t.id+'" onmouseenter="showTip(event,\''+t.id+'\',\'backlog\')" onmouseleave="hideTip()">&#9650; '+score+'</span>';
-      const promoteBtn='<button class="action-btn promote-btn" onclick="promoteToToday(\''+t.id+'\')">Add to today</button>';
+      const promoteBtn=t.recurrence?''/* recurring backlog auto-spawns, manual promote not needed */:'<button class="action-btn promote-btn" onclick="promoteToToday(\''+t.id+'\')">Add to today</button>';
       const robbieBacklogBtn='<button class="action-btn robbie-btn" onclick="toggleRobbie(\''+t.id+'\',\'backlog\')">'+(t.robbieFlag?'🟢 Robbie':'+ Robbie')+'</button>';
       const handle='<div class="drag-handle" title="Drag to reorder, or drop onto Today tab"><span></span><span></span><span></span></div>';
-      card.innerHTML=handle+'<div class="check-btn" style="cursor:default;opacity:.2;"></div><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+delegateTag+robbieTag+dueChip+scoreBadge+'</div></div><div class="task-actions">'+promoteBtn+robbieBacklogBtn+'<button class="action-btn edit-btn" onclick="openEditModal(\''+t.id+'\',\'backlog\')">Edit</button><button class="action-btn delete-btn" onclick="deleteBacklog(\''+t.id+'\')">Remove</button></div>';
+      card.innerHTML=handle+'<div class="check-btn" style="cursor:default;opacity:.2;"></div><div class="task-body"><div class="task-name">'+escHtml(t.name)+'</div><div class="task-meta">'+delegateTag+robbieTag+recurChip+dueChip+scoreBadge+'</div></div><div class="task-actions">'+promoteBtn+robbieBacklogBtn+'<button class="action-btn edit-btn" onclick="openEditModal(\''+t.id+'\',\'backlog\')">Edit</button><button class="action-btn delete-btn" onclick="deleteBacklog(\''+t.id+'\')">Remove</button></div>';
       el.appendChild(card);
     });
   });
@@ -1128,6 +1050,18 @@ function completeTask(id){
   state.meta.score+=pts;state.meta.xp+=Math.round(calcScore(t)*0.5);
   if(state.manualOrder)state.manualOrder=state.manualOrder.filter(mid=>String(mid)!==String(id));
   logTaskComplete(t);
+  // If recurring, update the backlog item so it can respawn next cycle
+  if(t.recurrence){
+    const today=new Date().toISOString().slice(0,10);
+    if(t.recurBacklogId){
+      const bl=state.backlog.find(b=>String(b.id)===String(t.recurBacklogId));
+      if(bl){bl.inToday=false;bl.lastSpawned=today;}
+    } else {
+      // Standalone today task — push to backlog to anchor the recurring cycle
+      const newBl={id:"b"+Date.now(),name:t.name,category:t.category||"Other",strategic:t.strategic,blocking:t.blocking,delegatable:t.delegatable,dueDate:null,inToday:false,recurrence:t.recurrence,lastSpawned:today};
+      state.backlog.push(newBl);
+    }
+  }
   saveState();
   const allDone=state.tasks.every(t=>t.status==="done");
   let msg=allDone?"ALL DONE. You absolutely smashed today.":CELEBRATES[Math.floor(Math.random()*CELEBRATES.length)];
@@ -1197,6 +1131,10 @@ function updateScorePreview(){
   document.getElementById("m-blocking-val").textContent=b;
   document.getElementById("m-score-preview").textContent=calcScore({strategic:s,blocking:b,delegatable:d,dueDate:dd||null});
 }
+function recurField(currentVal){
+  return '<div class="field"><label>Repeats <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">(optional — auto-adds to Today when due)</span></label><select class="recur-select" id="m-recur">'+recurSelectHtml(currentVal||'')+'</select></div>';
+}
+
 function openModal(mode){
   modalMode=mode;
   const modal=document.getElementById("modal");
@@ -1211,7 +1149,7 @@ function openModal(mode){
     const flipLabel=isBacklog?'Add to Today instead':'Add to Backlog instead';
     const flipMode=isBacklog?'today-new':'backlog-new';
     const destFlip='<div class="modal-dest-flip" onclick="openModal(\''+flipMode+'\')">'+flipLabel+'</div>';
-    body.innerHTML='<div class="field"><label>Task name</label><input type="text" id="m-name" placeholder="What needs doing?"/></div>'+catField+dueDateField+makeSliders()+robbieCheck+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveModal()">Add</button></div>'+destFlip;
+    body.innerHTML='<div class="field"><label>Task name</label><input type="text" id="m-name" placeholder="What needs doing?"/></div>'+catField+dueDateField+recurField('')+makeSliders()+robbieCheck+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveModal()">Add</button></div>'+destFlip;
     setTimeout(updateScorePreview,10);
     document.getElementById("m-name").focus();
     document.getElementById("m-name").addEventListener("keydown",e=>{if(e.key==="Enter")saveModal();});
@@ -1219,11 +1157,12 @@ function openModal(mode){
     title.textContent="Add from backlog";
     const available=state.backlog.filter(t=>!t.inToday).map(t=>({...t,_score:calcScore(t)})).sort((a,b)=>b._score-a._score);
     if(!available.length){body.innerHTML='<p style="color:var(--text2);font-size:14px;margin-bottom:16px;">All backlog items are already in today.</p><div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Close</button></div>';modal.classList.add("open");return;}
-    const items=available.map(t=>'<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);"><input type="checkbox" data-id="'+t.id+'" style="accent-color:var(--accent);width:16px;height:16px;"> '+escHtml(t.name)+(t.dueDate?' <span style="font-size:10px;color:var(--amber);margin-left:2px;">&#128197; '+new Date(t.dueDate).toLocaleDateString("en-GB",{day:"numeric",month:"short"})+'</span>':"")+(t.robbieFlag?' <span style="font-size:10px;color:#7ecb6a;">🟢</span>':"")+'  <span class="score-badge '+scoreLabel(t._score)+'" style="margin-left:auto;">&#9650; '+t._score+'</span></label>').join("");
+    const items=available.map(t=>'<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text2);"><input type="checkbox" data-id="'+t.id+'" style="accent-color:var(--accent);width:16px;height:16px;"> '+escHtml(t.name)+(t.recurrence?'<span class="tag-recur" style="margin-left:4px;">↻ '+t.recurrence+'</span>':"")+(t.dueDate?' <span style="font-size:10px;color:var(--amber);margin-left:2px;">&#128197; '+new Date(t.dueDate).toLocaleDateString("en-GB",{day:"numeric",month:"short"})+'</span>':"")+(t.robbieFlag?' <span style="font-size:10px;color:#7ecb6a;">🟢</span>':"")+'  <span class="score-badge '+scoreLabel(t._score)+'" style="margin-left:auto;">&#9650; '+t._score+'</span></label>').join("");
     body.innerHTML='<div style="max-height:360px;overflow-y:auto;margin-bottom:16px;">'+items+'</div><div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="addFromBacklog()">Add selected</button></div>';
   }
   modal.classList.add("open");
 }
+
 function saveModal(){
   const name=document.getElementById("m-name").value.trim();if(!name)return;
   const strategic=parseInt(document.getElementById("m-strategic").value);
@@ -1233,16 +1172,28 @@ function saveModal(){
   const dueDate=dueEl&&dueEl.value?dueEl.value:null;
   const robbieEl=document.getElementById("m-robbie");
   const robbieFlag=robbieEl?robbieEl.checked:false;
+  const recurEl=document.getElementById("m-recur");
+  const recurrence=recurEl&&recurEl.value?recurEl.value:null;
   if(modalMode==="backlog-new"){
     const cat=document.getElementById("m-cat").value;
-    state.backlog.push({id:"b"+Date.now(),name,category:cat,strategic,blocking,delegatable,dueDate,inToday:false,robbieFlag});
+    const newItem={id:"b"+Date.now(),name,category:cat,strategic,blocking,delegatable,dueDate,inToday:false,robbieFlag,recurrence:recurrence||null,lastSpawned:null};
+    state.backlog.push(newItem);
+    // If recurring, immediately promote to today and record spawn
+    if(recurrence){
+      const today=new Date().toISOString().slice(0,10);
+      newItem.inToday=true;
+      newItem.lastSpawned=today;
+      state.tasks.push({id:Date.now(),name,strategic,blocking,delegatable,dueDate,status:"todo",robbieFlag,recurrence,recurBacklogId:newItem.id});
+    }
   }else{
-    state.tasks.push({id:Date.now(),name,strategic,blocking,delegatable,dueDate,status:"todo",robbieFlag});
+    state.tasks.push({id:Date.now(),name,strategic,blocking,delegatable,dueDate,status:"todo",robbieFlag,recurrence:recurrence||null});
   }
   saveState();closeModal();render();
 }
+
 function addFromBacklog(){document.querySelectorAll("#modal input[type=checkbox]:checked").forEach(cb=>promoteToToday(cb.dataset.id));closeModal();render();}
 function closeModal(){document.getElementById("modal").classList.remove("open");}
+
 function openEditModal(id, source){
   modalMode = "edit-"+source;
   const t = source==="today"
@@ -1257,7 +1208,7 @@ function openEditModal(id, source){
     ? '<div class="field"><label>Category</label><select id="m-cat">'+catSelectHtml(t.category)+'</select></div>'
     : "";
   const dueDateField = '<div class="field"><label>Due date <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label><input type="date" id="m-due" value="'+(t.dueDate||"")+'" onchange="updateScorePreview()"/></div>';
-  body.innerHTML = '<div class="field"><label>Task name</label><input type="text" id="m-name" value="'+escHtml(t.name)+'"/></div>'+catField+dueDateField+makeSliders(t.strategic||3,t.blocking||2,t.delegatable||false)+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveEditModal(\''+id+'\',\''+source+'\')">Save</button></div>';
+  body.innerHTML = '<div class="field"><label>Task name</label><input type="text" id="m-name" value="'+escHtml(t.name)+'"/></div>'+catField+dueDateField+recurField(t.recurrence||'')+makeSliders(t.strategic||3,t.blocking||2,t.delegatable||false)+'<div class="modal-actions"><button class="modal-cancel" onclick="closeModal()">Cancel</button><button class="modal-save" onclick="saveEditModal(\''+id+'\',\''+source+'\')">Save</button></div>';
   setTimeout(updateScorePreview, 10);
   modal.classList.add("open");
 }
@@ -1270,16 +1221,31 @@ function saveEditModal(id, source){
   const delegatable = document.getElementById("m-delegatable").checked;
   const dueEl = document.getElementById("m-due");
   const dueDate = dueEl && dueEl.value ? dueEl.value : null;
+  const recurEl = document.getElementById("m-recur");
+  const recurrence = recurEl && recurEl.value ? recurEl.value : null;
   if(source==="today"){
     const t = state.tasks.find(t=>String(t.id)===String(id));
     if(!t) return;
-    t.name=name; t.strategic=strategic; t.blocking=blocking; t.delegatable=delegatable; t.dueDate=dueDate;
+    t.name=name; t.strategic=strategic; t.blocking=blocking; t.delegatable=delegatable; t.dueDate=dueDate; t.recurrence=recurrence||null;
+    // If they've made a today task recurring and it has a backlog counterpart, sync it
+    if(t.recurBacklogId){
+      const bl=state.backlog.find(b=>String(b.id)===String(t.recurBacklogId));
+      if(bl){bl.name=name;bl.strategic=strategic;bl.blocking=blocking;bl.delegatable=delegatable;bl.recurrence=recurrence||null;}
+    }
   } else {
     const t = state.backlog.find(t=>String(t.id)===String(id));
     if(!t) return;
-    t.name=name; t.strategic=strategic; t.blocking=blocking; t.delegatable=delegatable; t.dueDate=dueDate;
+    const wasRecurring=!!t.recurrence;
+    t.name=name; t.strategic=strategic; t.blocking=blocking; t.delegatable=delegatable; t.dueDate=dueDate; t.recurrence=recurrence||null;
     const catEl = document.getElementById("m-cat");
     if(catEl) t.category = catEl.value;
+    // If newly set to recurring, spawn today immediately
+    if(!wasRecurring && recurrence && !t.inToday){
+      const today=new Date().toISOString().slice(0,10);
+      t.inToday=true;
+      t.lastSpawned=today;
+      state.tasks.push({id:Date.now(),name,strategic,blocking,delegatable,dueDate,status:"todo",recurrence,recurBacklogId:t.id});
+    }
   }
   saveState(); closeModal(); render();
 }
@@ -1665,9 +1631,6 @@ syncFromCloud();
   </button>
   <button class="mob-nav-btn" id="mob-nav-robbie" onclick="switchView('robbie')" style="color:#7ecb6a;">
     <span class="mob-nav-icon">&#128172;</span>Robbie
-  </button>
-  <button class="mob-nav-btn" id="mob-nav-recurring" onclick="switchView('recurring')" style="color:#4ecb8a;">
-    <span class="mob-nav-icon">&#8635;</span>Recur
   </button>
   <button class="mob-nav-btn" id="mob-nav-add" onclick="openModal('today-new')">
     <span class="mob-nav-icon">&#43;</span>Add
