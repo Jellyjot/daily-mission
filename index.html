@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Mission</title>
+<script>(function(){var t=localStorage.getItem('dm_theme');if(t)document.documentElement.setAttribute('data-theme',t);}());</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap');
   :root {
@@ -313,6 +314,42 @@
     .cat-add-row{flex-direction:column;}
     .cat-add-btn{width:100%;padding:12px;}
   }
+  /* ── Light / dark mode ─────────────────────────────────────────────── */
+  html[data-theme="light"] {
+    --bg:#f0f4f8;--surface:#f8fafc;--surface2:#ffffff;--border:#d1dce8;--border2:#b8c8d8;
+    --text:#1a2b3c;--text2:#4a6880;--text3:#8aaac0;
+    --accent:#2563eb;--accent-dim:#dbeafe;
+    --amber:#b45309;--amber-dim:#fef3c7;
+    --blue:#0369a1;--blue-dim:#e0f2fe;
+    --red:#dc2626;--red-dim:#fee2e2;
+    --purple:#7c3aed;--purple-dim:#ede9fe;
+    --green:#15803d;--green-dim:#dcfce7;
+    background:#f8fafc;color-scheme:light;
+  }
+  html[data-theme="light"] body{background:#f8fafc!important;color:#1a2b3c!important;}
+  html[data-theme="light"] .sidebar{background:#ffffff;}
+  html[data-theme="light"] .stat-box{background:#e8edf4;}
+  html[data-theme="light"] .stat-box .val{color:#1a2b3c;}
+  html[data-theme="light"] .date-day{color:#1a2b3c;}
+  html[data-theme="light"] .streak-info .s2{color:var(--text3);}
+  html[data-theme="light"] .main{background:#f8fafc;}
+  html[data-theme="light"] .main-title{color:#1a2b3c;}
+  html[data-theme="light"] .task-card{background:#ffffff;}
+  html[data-theme="light"] .task-card.drag-over{background:var(--accent-dim);}
+  html[data-theme="light"] .task-card.touch-drag-over{background:var(--accent-dim);}
+  html[data-theme="light"] .task-name{color:#1a2b3c;}
+  html[data-theme="light"] .modal{background:#ffffff;}
+  html[data-theme="light"] .modal-title{color:#1a2b3c;}
+  html[data-theme="light"] .drag-ghost{background:#ffffff;color:#1a2b3c;}
+  html[data-theme="light"] .carryover-banner{background:var(--purple-dim);}
+  html[data-theme="light"] .week-review-banner{background:var(--accent-dim);}
+  html[data-theme="light"] .field input[type=date]{color-scheme:light;}
+  html[data-theme="light"] .inline-due-input{color-scheme:light;}
+  html[data-theme="light"] .mob-stat{background:var(--surface2);}
+  html[data-theme="light"] .add-btn,html[data-theme="light"] .modal-save,html[data-theme="light"] .cat-add-btn,html[data-theme="light"] .week-review-btn,html[data-theme="light"] .week-tick{color:#fff;}
+  .theme-toggle{width:100%;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:6px;padding:6px 10px;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;margin-bottom:10px;}
+  .theme-toggle:hover{border-color:var(--accent);color:var(--accent);}
+  .mob-theme-toggle{background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:6px;padding:3px 8px;font-size:10px;font-family:'Inter',sans-serif;cursor:pointer;margin-top:3px;}
 </style>
 </head>
 <body>
@@ -322,6 +359,7 @@
   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
     <div class="mob-date" id="mob-date"></div>
     <div id="sync-status-mob" style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;"></div>
+    <button class="mob-theme-toggle" onclick="toggleTheme()">☀ Light</button>
   </div>
 </div>
 <div class="mob-stats">
@@ -365,6 +403,7 @@
     </div>
   </div>
   <div class="sidebar-footer">
+    <button class="theme-toggle" onclick="toggleTheme()">☀ Light</button>
     <div id="sync-status" style="font-size:11px;color:var(--text3);margin-bottom:10px;min-height:16px;text-align:center;font-family:'DM Mono',monospace;"></div>
     <button class="reset-btn" onclick="resetDay()">Reset today's progress</button>
   </div>
@@ -1707,7 +1746,23 @@ function startNewWeek(){
   spawnRecurringTasks();
 })();
 
+function toggleTheme(){
+  const html=document.documentElement;
+  const newTheme=html.getAttribute('data-theme')==='dark'?'light':'dark';
+  html.setAttribute('data-theme',newTheme);
+  localStorage.setItem('dm_theme',newTheme);
+  document.querySelectorAll('.theme-toggle,.mob-theme-toggle').forEach(function(b){
+    b.textContent=newTheme==='dark'?'☀ Light':'☾ Dark';
+  });
+}
+
 render();
+(function(){
+  var t=document.documentElement.getAttribute('data-theme')||'dark';
+  document.querySelectorAll('.theme-toggle,.mob-theme-toggle').forEach(function(b){
+    b.textContent=t==='dark'?'☀ Light':'☾ Dark';
+  });
+}());
 syncFromCloud();
 </script>
 <nav class="mob-nav">
