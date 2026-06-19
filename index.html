@@ -203,6 +203,26 @@
   .co-btn.park:hover{border-color:var(--purple);color:var(--purple);}
   .co-btn.dismiss-all{border-color:var(--border2);color:var(--text3);}
   .co-btn.dismiss-all:hover{border-color:var(--red);color:var(--red);}
+  /* Week in review banner */
+  .week-review-banner{background:#0f1e30;border:1px solid var(--accent);border-radius:10px;padding:16px 18px;margin-bottom:18px;display:none;}
+  .week-review-banner.show{display:block;}
+  .week-review-title{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+  .week-review-sub{font-size:12px;color:var(--text2);margin-bottom:14px;}
+  .week-review-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+  .week-review-stat{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+  .week-review-stat .wrv{font-size:22px;font-weight:500;font-family:'DM Mono',monospace;color:var(--text);}
+  .week-review-stat .wrl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+  .week-review-tasks{max-height:160px;overflow-y:auto;margin-bottom:14px;border:1px solid var(--border);border-radius:8px;padding:8px 12px;}
+  .week-review-task-row{font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .week-review-task-row:last-child{border-bottom:none;}
+  .week-review-task-pts{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);flex-shrink:0;}
+  .week-review-actions{display:flex;gap:8px;}
+  .week-review-btn{flex:1;background:var(--accent);color:#0e1217;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+  .week-review-btn:hover{opacity:.85;}
+  @media(max-width:680px){
+    .week-review-stats{grid-template-columns:repeat(3,1fr);}
+    .week-review-tasks{max-height:120px;}
+  }
   /* Delegate filter */
   .today-filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
   .today-filter-pill{background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:20px;padding:4px 12px;font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
@@ -359,6 +379,7 @@
       </div>
     </div>
     <div class="celebrate-bar" id="celebrate"></div>
+    <div class="week-review-banner" id="week-review-banner"></div>
     <div class="carryover-banner" id="carryover-banner"></div>
     <div id="next-up-banner"></div>
     <div class="search-wrap">
@@ -767,6 +788,8 @@ function renderToday(){
   const tasks=state.tasks;
   // ── Carry-over check ────────────────────────────────────────────────
   checkCarryover();
+  // ── Week in review check ─────────────────────────────────────────────
+  checkWeekReview();
   // ── Delegate filter pill ─────────────────────────────────────────────
   const filterBar=document.getElementById("today-filters");
   if(filterBar){
@@ -1612,6 +1635,68 @@ function onTodaySearch(inp){todaySearchQuery=inp.value.trim().toLowerCase();cons
 function clearTodaySearch(){todaySearchQuery="";const inp=document.getElementById("today-search");if(inp)inp.value="";const clr=document.getElementById("today-search-clear");if(clr)clr.classList.remove("visible");renderToday();}
 function onBacklogSearch(inp){backlogSearchQuery=inp.value.trim().toLowerCase();const clr=document.getElementById("backlog-search-clear");if(clr)clr.classList.toggle("visible",backlogSearchQuery.length>0);renderBacklog();}
 function clearBacklogSearch(){backlogSearchQuery="";const inp=document.getElementById("backlog-search");if(inp)inp.value="";const clr=document.getElementById("backlog-search-clear");if(clr)clr.classList.remove("visible");renderBacklog();}
+
+// ── Week in review ───────────────────────────────────────────────────────────
+function getLastWeekStart(){
+  const d=new Date();
+  const day=d.getDay();
+  // Go back to last Monday
+  const diff=d.getDate()-(day===0?6:day-1)-7;
+  const mon=new Date(d);mon.setDate(diff);mon.setHours(0,0,0,0);return mon;
+}
+
+function checkWeekReview(){
+  const banner=document.getElementById("week-review-banner");
+  if(!banner)return;
+  const today=new Date().toISOString().slice(0,10);
+  const alreadyShown=localStorage.getItem("dm_week_review_shown");
+  // Only show on Monday (day 1) and only once per week
+  const dayOfWeek=new Date().getDay();
+  if(dayOfWeek!==1||alreadyShown===today){banner.classList.remove("show");return;}
+  // Gather last week's log (Mon-Sun)
+  const lastWeekStart=getLastWeekStart();
+  const log=state.weekLog||{};
+  const days=[];
+  for(let i=0;i<7;i++){const d=new Date(lastWeekStart);d.setDate(lastWeekStart.getDate()+i);days.push(d.toISOString().slice(0,10));}
+  const allTasks=days.flatMap(d=>log[d]||[]);
+  // Only show if there's something to review
+  if(!allTasks.length&&state.tasks.filter(t=>t.status==="done").length===0){banner.classList.remove("show");return;}
+  const totalDone=allTasks.length;
+  const totalPts=allTasks.reduce((s,t)=>s+t.pts,0);
+  const activeDays=days.filter(d=>log[d]&&log[d].length>0).length;
+  const weekLabel=lastWeekStart.toLocaleDateString("en-GB",{day:"numeric",month:"short"})+" – "+new Date(lastWeekStart.getTime()+6*86400000).toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  const taskRows=allTasks.length
+    ? allTasks.map(t=>'<div class="week-review-task-row"><span>'+escHtml(t.name)+'</span><span class="week-review-task-pts">+'+t.pts+'</span></div>').join("")
+    : '<div style="font-size:12px;color:var(--text3);padding:6px 0;">No tasks logged last week.</div>';
+  banner.innerHTML=
+    '<div class="week-review-title">📋 Week in Review — '+weekLabel+'</div>'+
+    '<div class="week-review-sub">Here\'s what you shipped last week. Start new week to clear done tasks and go again.</div>'+
+    '<div class="week-review-stats">'+
+      '<div class="week-review-stat"><div class="wrv">'+totalDone+'</div><div class="wrl">Done</div></div>'+
+      '<div class="week-review-stat"><div class="wrv">'+totalPts+'</div><div class="wrl">Points</div></div>'+
+      '<div class="week-review-stat"><div class="wrv">'+activeDays+'/5</div><div class="wrl">Active days</div></div>'+
+    '</div>'+
+    (allTasks.length?'<div class="week-review-tasks">'+taskRows+'</div>':'')+
+    '<div class="week-review-actions"><button class="week-review-btn" onclick="startNewWeek()">🚀 Start new week</button></div>';
+  banner.classList.add("show");
+}
+
+function startNewWeek(){
+  // Remove done tasks from Today — they're already in weekLog
+  state.tasks=state.tasks.filter(t=>t.status!=="done");
+  // Backlog items that were inToday but done: mark as available again
+  state.backlog.forEach(bt=>{
+    const stillActive=state.tasks.some(t=>String(t.recurBacklogId)===String(bt.id)&&t.status!=="done");
+    if(bt.inToday&&!stillActive)bt.inToday=false;
+  });
+  // Mark week review shown so it doesn't re-appear today
+  localStorage.setItem("dm_week_review_shown",new Date().toISOString().slice(0,10));
+  saveState();
+  const banner=document.getElementById("week-review-banner");
+  if(banner)banner.classList.remove("show");
+  celebrate("New week, fresh slate. Let's go. 🚀");
+  render();
+}
 
 // Mark unfinished tasks for carryover check on first load of new day
 (function(){
