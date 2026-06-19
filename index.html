@@ -509,9 +509,11 @@ const BACKLOG_DEFAULT=[
   {id:"b32",name:"Chase access to API AI tokens",category:"Delegate / Batch",strategic:2,blocking:1,delegatable:true}
 ];
 
-const JSONBIN_ID = "6a28737cf5f4af5e29d42f06";
-const JSONBIN_KEY = "$2a$10$2yQ5ZdsmUIAiAGmKyxE/7OmwxwSvf1GIgF7JK6qCQwpKLc2vuFJNS";
-const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_ID;
+// ── Supabase config ───────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://oziirgoyervymlrinjrg.supabase.co";
+const SUPABASE_KEY = "sb_publishable_jDvNaW6KrOWvciu1XEKSzw_5qerXaEH";
+const SUPABASE_TABLE = "daily_mission";
+const SUPABASE_ROW_ID = 1; // Single-row store — all state lives in row 1
 let saveDebounceTimer = null;
 
 function defaultState(){
@@ -569,12 +571,13 @@ function setSyncStatus(msg, colour){
 async function syncFromCloud(){
   setSyncStatus("⟳ Syncing…");
   try {
-    const r = await fetch(JSONBIN_URL+"/latest", {
-      headers:{"X-Master-Key": JSONBIN_KEY, "X-Bin-Meta": "false"}
-    });
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${SUPABASE_ROW_ID}&select=data`,
+      { headers:{ "apikey": SUPABASE_KEY, "Authorization": "Bearer "+SUPABASE_KEY } }
+    );
     if(!r.ok) throw new Error("Fetch failed "+r.status);
-    const remote = await r.json();
-    // Always trust remote if it has been initialised (has a tasks array)
+    const rows = await r.json();
+    const remote = rows && rows[0] ? rows[0].data : null;
     if(remote && Array.isArray(remote.tasks)){
       state.tasks = remote.tasks;
       state.meta = remote.meta || {score:0,streak:0,xp:0};
@@ -583,7 +586,6 @@ async function syncFromCloud(){
       state.weekLog = remote.weekLog || {};
       state.categories = Array.isArray(remote.categories) && remote.categories.length ? remote.categories : state.categories;
       state.recurringTemplates = Array.isArray(remote.recurringTemplates) ? remote.recurringTemplates : (state.recurringTemplates||[]);
-      // Clear any stale local keys so remote always wins on next load
       Object.keys(localStorage).filter(k=>k.startsWith("dm_")).forEach(k=>localStorage.removeItem(k));
       saveLocalCache(state);
       render();
@@ -603,15 +605,19 @@ function saveState(){
   saveDebounceTimer = setTimeout(async()=>{
     try {
       const payload = {tasks:state.tasks, meta:state.meta, backlog:state.backlog, manualOrder:state.manualOrder, weekLog:state.weekLog, categories:state.categories, recurringTemplates:state.recurringTemplates};
-      const r = await fetch(JSONBIN_URL, {
-        method:"PUT",
-        headers:{
-          "Content-Type":"application/json",
-          "X-Master-Key": JSONBIN_KEY,
-          "X-Bin-Versioning": "false"
-        },
-        body: JSON.stringify(payload)
-      });
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${SUPABASE_ROW_ID}`,
+        {
+          method: "PATCH",
+          headers:{
+            "Content-Type": "application/json",
+            "apikey": SUPABASE_KEY,
+            "Authorization": "Bearer "+SUPABASE_KEY,
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({ data: payload })
+        }
+      );
       if(!r.ok) throw new Error("Save failed "+r.status);
       setSyncStatus("✓ Saved", "var(--green)");
       setTimeout(()=>setSyncStatus("",""), 2500);
